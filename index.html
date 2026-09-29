@@ -651,7 +651,7 @@
             position: absolute;
             left: 50%;
             top: max(8px, env(safe-area-inset-top));
-            z-index: 5;
+            z-index: 40;
             transform: translate(-50%, -130%);
             padding: 7px 10px;
             border-radius: 999px;
@@ -669,6 +669,66 @@
             transform: translate(-50%, 0);
             opacity: 1;
         }
+
+        .export-modal {
+            position: absolute;
+            inset: 0;
+            z-index: 30;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+            background: rgba(24, 33, 47, 0.36);
+        }
+
+        .export-modal.show { display: flex; }
+
+        .export-sheet {
+            width: min(520px, 100%);
+            max-height: calc(100svh - 20px);
+            display: grid;
+            grid-template-rows: auto auto minmax(180px, 1fr) auto;
+            gap: 10px;
+            padding: 12px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+        }
+
+        .export-title { font-size: 14px; font-weight: 800; }
+        .export-filename { color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+        .export-help { color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+        .export-textarea {
+            width: 100%;
+            min-height: 180px;
+            padding: 8px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #fbfcfe;
+            color: var(--ink);
+            font-family: Consolas, "SFMono-Regular", monospace;
+            font-size: 10px;
+            line-height: 1.35;
+            resize: none;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        .export-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+        .export-actions button {
+            min-width: 0;
+            min-height: 38px;
+            border: 0;
+            border-radius: 8px;
+            background: var(--ink);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 800;
+        }
+        .export-actions button:first-child { background: var(--blue); }
+        .export-actions button:disabled { opacity: 0.5; }
 
         .metric-action { cursor: pointer; }
 
@@ -920,6 +980,22 @@
 
     <section id="pageDashboard" class="page result-page">
         <div id="notice" class="notice"></div>
+
+        <div id="exportModal" class="export-modal" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
+            <div class="export-sheet">
+                <div>
+                    <div id="exportTitle" class="export-title">Export data</div>
+                    <div id="exportFilename" class="export-filename"></div>
+                </div>
+                <div class="export-help">Tap Share file, then choose Save to Files. If sharing is unavailable, copy the text below.</div>
+                <textarea id="exportText" class="export-textarea" readonly spellcheck="false" aria-label="Exported data"></textarea>
+                <div class="export-actions">
+                    <button id="exportShareBtn" type="button" onclick="shareExportFile()">Share file</button>
+                    <button type="button" onclick="copyExportText()">Copy text</button>
+                    <button type="button" onclick="closeExportModal()">Close</button>
+                </div>
+            </div>
+        </div>
 
         <div id="tempCalOverlay" class="cal-overlay hidden" onclick="handleTempCalOverlayClick(event)">
             <div class="cal-panel" role="dialog" aria-label="Temperature calibration" onclick="event.stopPropagation()">
@@ -1235,6 +1311,7 @@
         let lastRenderMs = 0;
         let metricsInterval = null;
         let noticeTimer = 0;
+        let pendingExport = null;
 
         let calibrationFileName = "";
         let gluMode = GLU_MODES.IT;
@@ -3589,7 +3666,7 @@
             return String(value == null || value === "" ? "NA" : value).replace(/[\t\r\n]/g, " ").trim() || "NA";
         }
 
-        function saveAllData() {
+        async function saveAllData() {
             const rows = [];
             const sessionId = timestampName();
             const meta = metadataForSave(sessionId);
@@ -3609,16 +3686,91 @@
                 const p = pulseExport[i] || ["", ""];
                 rows.push([cell(e[0]), electroCell(e[1]), cell(g[0]), cell(g[1]), cell(t[0]), cell(t[1]), cell(p[0]), cell(p[1])].concat(metaValues).join("\t"));
             }
-            const blob = new Blob([rows.join("\n")], { type: "text/plain;charset=utf-8" });
+            const filename = "wesys_v8_" + safeName(meta.subject_id) + "_" + meta.session_role + "_" + gluMode.toLowerCase() + "_" + sessionId + ".txt";
+            const text = rows.join("\n");
+            if (isAppleTouchDevice()) {
+                showExportModal(filename, text);
+                await shareExportFile();
+                return;
+            }
+            triggerTextDownload(filename, text);
+            showNotice(resampleRt ? "Download started with resampled R-t" : "Download started");
+        }
+
+        function isAppleTouchDevice() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        }
+
+        function triggerTextDownload(filename, text) {
+            const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = "wesys_v8_" + safeName(meta.subject_id) + "_" + meta.session_role + "_" + gluMode.toLowerCase() + "_" + sessionId + ".txt";
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             a.remove();
-            URL.revokeObjectURL(url);
-            showNotice(resampleRt ? "Data saved with resampled R-t" : "Data saved");
+            setTimeout(function() { URL.revokeObjectURL(url); }, 60000);
+        }
+
+        function showExportModal(filename, text) {
+            closeExportModal();
+            pendingExport = { filename: filename, text: text };
+            document.getElementById("exportFilename").textContent = filename;
+            document.getElementById("exportText").value = text;
+            document.getElementById("exportShareBtn").disabled = typeof navigator.share !== "function" || typeof File !== "function";
+            document.getElementById("exportModal").classList.add("show");
+        }
+
+        async function shareExportFile() {
+            if (!pendingExport || typeof navigator.share !== "function" || typeof File !== "function") {
+                showNotice("Use Copy text to export");
+                return;
+            }
+            try {
+                const file = new File([pendingExport.text], pendingExport.filename, { type: "text/plain" });
+                if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+                    showNotice("File sharing unavailable; use Copy text");
+                    return;
+                }
+                await navigator.share({ files: [file], title: pendingExport.filename });
+                closeExportModal();
+                showNotice("Export shared");
+            } catch (err) {
+                if (err && err.name === "AbortError") {
+                    showNotice("Share canceled");
+                } else {
+                    console.warn("File sharing failed", err);
+                    showNotice("Share failed; use Copy text");
+                }
+            }
+        }
+
+        async function copyExportText() {
+            if (!pendingExport) return;
+            const textEl = document.getElementById("exportText");
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(pendingExport.text);
+                } else {
+                    textEl.focus();
+                    textEl.select();
+                    if (!document.execCommand("copy")) throw new Error("Copy command unavailable");
+                }
+                showNotice("Data copied");
+            } catch (err) {
+                console.warn("Copy failed", err);
+                textEl.focus();
+                textEl.select();
+                showNotice("Select and copy the data");
+            }
+        }
+
+        function closeExportModal() {
+            document.getElementById("exportModal").classList.remove("show");
+            document.getElementById("exportText").value = "";
+            pendingExport = null;
         }
 
         function timestampName() {
