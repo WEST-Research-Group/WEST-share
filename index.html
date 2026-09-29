@@ -1,0 +1,4163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>WEST blood glucose prediction</title>
+    <style>
+        :root {
+            --bg: #f7f9fb;
+            --panel: #fff;
+            --ink: #18212f;
+            --muted: #687487;
+            --line: #dce3ec;
+            --blue: #2f7de1;
+            --green: #11a379;
+            --red: #d65353;
+            --amber: #d98a14;
+            --violet: #6f4de2;
+            --shadow: 0 8px 24px rgba(24, 33, 47, 0.08);
+        }
+
+        * { box-sizing: border-box; }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: Arial, "Segoe UI", sans-serif;
+            letter-spacing: 0;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body { min-height: 100svh; }
+        button, input, select { font: inherit; }
+
+        .page {
+            display: none;
+            width: 100%;
+            height: 100svh;
+            overflow: hidden;
+            background: var(--bg);
+        }
+
+        .page.active { display: flex; }
+
+        .setup-page {
+            align-items: flex-start;
+            justify-content: center;
+            padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+            overflow-y: auto;
+            background:
+                linear-gradient(135deg, rgba(47, 125, 225, 0.08), rgba(17, 163, 121, 0.08)),
+                var(--bg);
+        }
+
+        .panel {
+            width: min(430px, 100%);
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 18px;
+            margin: auto 0;
+            max-height: calc(100svh - 36px);
+            overflow-y: auto;
+        }
+
+        .panel h1 {
+            margin: 0 0 16px;
+            font-size: 22px;
+            line-height: 1.15;
+            font-weight: 800;
+        }
+
+        .field {
+            display: grid;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .field label {
+            font-size: 12px;
+            line-height: 1;
+            color: var(--muted);
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .field small {
+            font-size: 11px;
+            line-height: 1.4;
+            color: var(--muted);
+        }
+
+        .field input,
+        .field select {
+            width: 100%;
+            height: 42px;
+            padding: 0 12px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #fbfcfe;
+            color: var(--ink);
+            outline: none;
+        }
+
+        .checkbox-field {
+            grid-template-columns: auto 1fr;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-field input {
+            width: 18px;
+            height: 18px;
+            padding: 0;
+            margin: 0;
+        }
+
+        .checkbox-field label {
+            text-transform: none;
+            line-height: 1.25;
+            color: var(--ink);
+        }
+
+        .primary-btn,
+        .secondary-btn {
+            width: 100%;
+            height: 44px;
+            border: 0;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .primary-btn { background: var(--blue); }
+        .secondary-btn { background: var(--ink); }
+        .danger-bg { background: var(--red) !important; }
+
+        .status {
+            min-height: 18px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .routing-page {
+            flex-direction: column;
+            padding: max(8px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+        }
+
+        .route-top {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 8px;
+            align-items: center;
+            min-height: 38px;
+        }
+
+        .back-btn,
+        .icon-btn,
+        .mini-icon,
+        .chart-btn {
+            display: grid;
+            place-items: center;
+            border: 1px solid var(--line);
+            background: var(--panel);
+            color: var(--ink);
+            box-shadow: 0 2px 8px rgba(24, 33, 47, 0.05);
+            cursor: pointer;
+        }
+
+        .back-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            font-size: 20px;
+            font-weight: 800;
+        }
+
+        .route-title {
+            min-width: 0;
+            font-size: 16px;
+            font-weight: 800;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chip-pill {
+            padding: 6px 9px;
+            border-radius: 999px;
+            background: rgba(17, 163, 121, 0.12);
+            color: var(--green);
+            font-size: 11px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .routing-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 8px 0;
+            flex: 0 0 auto;
+        }
+
+        .routing-controls select,
+        .routing-controls button {
+            height: 38px;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            background: var(--panel);
+            color: var(--ink);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .routing-controls button {
+            border: 0;
+            background: var(--blue);
+            color: #fff;
+        }
+
+        .mini-grid {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 7px;
+            overflow-y: auto;
+            padding-bottom: 6px;
+        }
+
+        .mini-grid.single {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .mini-card {
+            min-height: 112px;
+            display: grid;
+            grid-template-rows: 24px minmax(0, 1fr);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+            padding: 5px;
+        }
+
+        .mini-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--muted);
+        }
+
+        .mini-tools {
+            display: flex;
+            gap: 4px;
+        }
+
+        .mini-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            color: var(--muted);
+        }
+
+        .mini-icon svg,
+        .icon-btn svg,
+        .chart-btn svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+        }
+
+        .mini-canvas {
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .route-bottom {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            flex: 0 0 auto;
+            margin-top: 6px;
+        }
+
+        .result-page {
+            position: relative;
+            flex-direction: column;
+            padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
+        }
+
+        .topbar {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 8px;
+            min-height: 38px;
+            flex: 0 0 auto;
+        }
+
+        .title {
+            min-width: 0;
+            font-size: 14px;
+            line-height: 1.1;
+            font-weight: 800;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .title-wrap {
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .session-chip,
+        .mini-pill,
+        .mode-chip {
+            display: inline-grid;
+            place-items: center;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: var(--panel);
+            color: var(--muted);
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .session-chip {
+            height: 24px;
+            max-width: 76px;
+            padding: 0 8px;
+            font-size: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mini-pill {
+            height: 17px;
+            min-width: 24px;
+            padding: 0 5px;
+            font-size: 9px;
+            color: var(--green);
+            border-color: rgba(17, 163, 121, 0.26);
+            background: rgba(17, 163, 121, 0.08);
+        }
+
+        .session-panel {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 6px;
+            margin-top: 6px;
+            padding: 6px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.92);
+            box-shadow: 0 4px 14px rgba(24, 33, 47, 0.06);
+        }
+
+        .session-field {
+            display: grid;
+            gap: 3px;
+            min-width: 0;
+        }
+
+        .session-field label {
+            font-size: 8px;
+            line-height: 1;
+            color: var(--muted);
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .session-field input,
+        .session-field button,
+        .capture-display {
+            width: 100%;
+            height: 24px;
+            min-width: 0;
+            padding: 0 6px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: #fbfcfe;
+            color: var(--ink);
+            font-size: 10px;
+            font-weight: 800;
+            outline: none;
+        }
+
+        .session-field button {
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .capture-display {
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--muted);
+        }
+
+        .capture-display.good {
+            color: var(--green);
+            border-color: rgba(17, 163, 121, 0.28);
+            background: rgba(17, 163, 121, 0.08);
+        }
+
+        .capture-display.editable,
+        .metric.editable {
+            cursor: pointer;
+        }
+
+        .capture-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 74px;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .session-field button.good {
+            color: var(--green);
+            border-color: rgba(17, 163, 121, 0.28);
+            background: rgba(17, 163, 121, 0.08);
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 5px;
+        }
+
+        .icon-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+        }
+
+        .icon-btn.primary {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: #fff;
+        }
+
+        .icon-btn.warn { color: var(--amber); }
+        .icon-btn.clear { color: var(--red); }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            flex: 0 0 auto;
+            margin: 6px 0 7px;
+        }
+
+        .metric {
+            min-width: 0;
+            height: 52px;
+            padding: 7px 8px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+            box-shadow: 0 2px 10px rgba(24, 33, 47, 0.04);
+        }
+
+        .metric-label {
+            font-size: 10px;
+            line-height: 1;
+            color: var(--muted);
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .metric-label-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4px;
+        }
+
+        .metric-value {
+            margin-top: 5px;
+            font-size: 17px;
+            line-height: 1.05;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .metric-unit {
+            margin-left: 2px;
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--muted);
+        }
+
+        .chart-stack {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: grid;
+            grid-template-rows: repeat(3, minmax(0, 1fr));
+            gap: 6px;
+        }
+
+        .chart-block {
+            min-height: 0;
+            display: grid;
+            grid-template-rows: 24px minmax(0, 1fr);
+            padding: 5px 6px 4px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+            box-shadow: 0 2px 10px rgba(24, 33, 47, 0.04);
+        }
+
+        .chart-head {
+            display: grid;
+            grid-template-columns: minmax(64px, 1fr) auto auto;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .chart-name {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            line-height: 1;
+            font-weight: 800;
+        }
+
+        .chart-mode-select {
+            min-width: 58px;
+            height: 20px;
+            padding: 0 4px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: currentColor;
+            font-size: 12px;
+            line-height: 1;
+            font-weight: 800;
+            outline: none;
+        }
+
+        .swatch {
+            width: 16px;
+            height: 3px;
+            border-radius: 999px;
+            background: currentColor;
+        }
+
+        .chart-actions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .chart-btn {
+            width: 22px;
+            height: 22px;
+            padding: 0;
+            border-radius: 6px;
+            color: var(--muted);
+        }
+
+        .chart-btn.playing {
+            color: var(--amber);
+            border-color: rgba(217, 138, 20, 0.32);
+            background: rgba(217, 138, 20, 0.10);
+        }
+
+        .chart-btn.active {
+            color: var(--green);
+            border-color: rgba(17, 163, 121, 0.32);
+            background: rgba(17, 163, 121, 0.10);
+        }
+
+        .chart-btn.danger { color: var(--red); }
+        .chart-btn.switch { color: var(--blue); }
+        .chart-btn .icon-pause { display: none; }
+        .chart-btn.playing .icon-play { display: none; }
+        .chart-btn.playing .icon-pause { display: block; }
+        .chart-btn:disabled,
+        .mode-chip:disabled {
+            cursor: not-allowed;
+            opacity: 0.42;
+            box-shadow: none;
+        }
+
+        .mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .mode-chip {
+            height: 18px;
+            min-width: 24px;
+            padding: 0 5px;
+            font-size: 9px;
+            line-height: 1;
+        }
+
+        .mode-chip.active {
+            color: #fff;
+            border-color: var(--green);
+            background: var(--green);
+        }
+
+        .chart-block.disabled {
+            background: #f4f7fa;
+        }
+
+        .chart-range {
+            font-size: 9px;
+            line-height: 1;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .notice {
+            position: absolute;
+            left: 50%;
+            top: max(8px, env(safe-area-inset-top));
+            z-index: 5;
+            transform: translate(-50%, -130%);
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: rgba(24, 33, 47, 0.92);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 800;
+            opacity: 0;
+            transition: transform 0.18s ease, opacity 0.18s ease;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .notice.show {
+            transform: translate(-50%, 0);
+            opacity: 1;
+        }
+
+        .metric-action { cursor: pointer; }
+
+        .cal-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            background: rgba(24, 33, 47, 0.32);
+        }
+
+        .cal-panel {
+            width: min(340px, 100%);
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            padding: 14px;
+        }
+
+        .cal-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .cal-title {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--ink);
+        }
+
+        .cal-close {
+            width: 24px;
+            height: 24px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: var(--panel);
+            color: var(--muted);
+            font-size: 15px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .cal-body {
+            display: grid;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .cal-body label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .cal-body input {
+            width: 100%;
+            height: 34px;
+            padding: 0 10px;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            background: var(--panel);
+            color: var(--ink);
+            font-size: 15px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .cal-readout {
+            white-space: pre-line;
+            padding: 8px 10px;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            background: var(--bg);
+            color: var(--ink);
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 1.5;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .cal-hint {
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .cal-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .cal-actions button:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .hidden { display: none; }
+
+        @media (max-height: 740px) {
+            .result-page {
+                padding-top: max(6px, env(safe-area-inset-top));
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+
+            .topbar { min-height: 34px; }
+            .title { font-size: 13px; }
+            .session-panel {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .icon-btn {
+                width: 28px;
+                height: 28px;
+            }
+
+            .metrics {
+                margin: 4px 0 5px;
+                gap: 5px;
+            }
+
+            .metric {
+                height: 46px;
+                padding: 6px 7px;
+            }
+
+            .metric-value {
+                font-size: 15px;
+                margin-top: 4px;
+            }
+
+            .chart-stack { gap: 5px; }
+
+            .chart-block {
+                grid-template-rows: 22px minmax(0, 1fr);
+                padding: 4px 5px 3px;
+            }
+
+            .chart-name { font-size: 11px; }
+
+            .chart-btn {
+                width: 20px;
+                height: 20px;
+            }
+
+            .chart-btn svg {
+                width: 12px;
+                height: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <section id="pageSetup" class="page setup-page active">
+        <div class="panel">
+            <h1>WEST blood glucose prediction</h1>
+
+            <div class="field">
+                <label for="chipConfig">ADS chip</label>
+                <select id="chipConfig" onchange="handleChipChange()">
+                    <option value="2">ADS1292 - 2 CH</option>
+                    <option value="8">ADS1298 - 8 CH</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="ecgStreamMode">EP data stream</label>
+                <select id="ecgStreamMode" onchange="handleEcgStreamModeChange()">
+                    <option value="SINGLE" selected>Single channel stream</option>
+                    <option value="INTERLEAVED">ADS channels interleaved - select CH on page 2</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="devName">Device name</label>
+                <input id="devName" value="WeSys_EP2" autocomplete="off">
+            </div>
+
+            <button class="primary-btn" type="button" onclick="connectBluetooth()">Connect EP (Bluetooth)</button>
+            <div id="setupStatus" class="status">Select chip and connect device.</div>
+
+            <hr style="border: 0; border-top: 1px solid var(--line); margin: 16px 0;">
+
+            <div class="field">
+                <label for="ad5941Name">AD5941 device name</label>
+                <input id="ad5941Name" value="WeSys_5941" autocomplete="off">
+            </div>
+
+            <button class="primary-btn" type="button" onclick="connectAd5941Bluetooth()" style="background: var(--green);">Connect AD5941 (Bluetooth)</button>
+            <div id="ad5941Status" class="status">Set AD5941 BLE name to WeSys_5941.</div>
+
+            <div class="field">
+                <label for="recordDelay">Non-temperature record delay (s)</label>
+                <input id="recordDelay" value="3" inputmode="decimal">
+            </div>
+
+            <div class="field">
+                <label for="roomTemperature">Room temperature (°C)</label>
+                <input id="roomTemperature" value="25" inputmode="decimal">
+                <small>For temperature, keep the sensor off skin at room temperature until Temp R-t reaches 6 s; then attach it to skin. The 3–6 s readings set the baseline.</small>
+            </div>
+
+            <div class="field checkbox-field">
+                <input id="resampleRtToEcg" type="checkbox">
+                <label for="resampleRtToEcg">Resample AD5941 R-t to ECG 250 Hz on export</label>
+            </div>
+
+            <button class="secondary-btn" type="button" onclick="openRouting()" style="margin-top: 12px;">Open Monitor Setup</button>
+        </div>
+    </section>
+
+    <section id="pageRouting" class="page routing-page">
+        <div class="route-top">
+            <button class="back-btn" type="button" onclick="backToSetup()">&lt;</button>
+            <div class="route-title">Channel Routing</div>
+            <div id="chipPill" class="chip-pill">ADS1292</div>
+        </div>
+
+        <div class="routing-controls">
+            <button id="previewBtn" type="button" onclick="togglePreview()">Start Preview</button>
+            <select id="electroModeSelect" onchange="handleElectroModeChange(this.value)">
+                <option value="ECG">ECG 250Hz</option>
+                <option value="EMG">EMG 1000Hz</option>
+                <option value="EEG">EEG 125Hz</option>
+                <option value="EOG" disabled>EOG legacy</option>
+            </select>
+            <select id="ecgChannelSelect"></select>
+        </div>
+
+        <div id="miniGrid" class="mini-grid"></div>
+
+        <div class="route-bottom">
+            <button class="secondary-btn" type="button" onclick="resetPreviewData()">Reset Preview</button>
+            <button class="primary-btn" type="button" onclick="enterDashboard()">Open Monitor</button>
+        </div>
+    </section>
+
+    <section id="pageDashboard" class="page result-page">
+        <div id="notice" class="notice"></div>
+
+        <div id="tempCalOverlay" class="cal-overlay hidden" onclick="handleTempCalOverlayClick(event)">
+            <div class="cal-panel" role="dialog" aria-label="Temperature calibration" onclick="event.stopPropagation()">
+                <div class="cal-head">
+                    <div class="cal-title">Temp calibration</div>
+                    <button class="cal-close" type="button" title="Close" aria-label="Close" onclick="closeTempCalibration()">&times;</button>
+                </div>
+                <div class="cal-body">
+                    <label for="tempRefInput">Reference thermometer reads (°C)</label>
+                    <input id="tempRefInput" inputmode="decimal" autocomplete="off" oninput="refreshTempCalibrationDialog()">
+                    <div class="cal-readout" id="tempCalReadout"></div>
+                    <div class="cal-hint" id="tempCalHint"></div>
+                </div>
+                <div class="cal-actions">
+                    <button class="secondary-btn" id="tempCalClearBtn" type="button" onclick="clearSessionTempCalibration()">Clear</button>
+                    <button class="primary-btn" id="tempCalApplyBtn" type="button" onclick="applyTempCalibration()">Apply</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="topbar">
+            <button class="back-btn" type="button" title="Back to routing" aria-label="Back to routing" onclick="backToRoutingFromDashboard()">&lt;</button>
+            <div class="title-wrap">
+                <div class="title">WEST</div>
+                <button class="session-chip" id="sessionChip" type="button" title="Session" aria-label="Session" onclick="toggleSessionPanel()">ID 01</button>
+            </div>
+            <div class="toolbar" aria-label="Global controls">
+                <button class="icon-btn clear" id="globalClearBtn" type="button" title="Clear current measurements" aria-label="Clear current measurements" onclick="clearCurrentSession()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 7h16"></path>
+                        <path d="M9 7V4h6v3"></path>
+                        <path d="M6 7l1 13h10l1-13"></path>
+                        <path d="M10 11v6"></path>
+                        <path d="M14 11v6"></path>
+                    </svg>
+                </button>
+                <button class="icon-btn primary" id="globalPlayBtn" type="button" title="Start" aria-label="Start" onclick="startSelectedTask()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="7 5 19 12 7 19 7 5" fill="currentColor" stroke="currentColor"></polygon>
+                    </svg>
+                </button>
+                <button class="icon-btn warn" type="button" title="Pause" aria-label="Pause" onclick="pauseSession()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 5v14"></path>
+                        <path d="M16 5v14"></path>
+                    </svg>
+                </button>
+                <button class="icon-btn" type="button" title="Save data" aria-label="Save data" onclick="saveAllData()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <path d="M7 10l5 5 5-5"></path>
+                        <path d="M12 15V3"></path>
+                    </svg>
+                </button>
+                <button class="icon-btn" type="button" title="Import calibration" aria-label="Import calibration" onclick="pickCalibrationFile()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3v12"></path>
+                        <path d="M8 7l4-4 4 4"></path>
+                        <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="session-panel hidden" id="sessionPanel" aria-label="Session setup">
+            <div class="session-field">
+                <label for="subjectIdInput">Subject ID</label>
+                <input id="subjectIdInput" value="01" autocomplete="off" oninput="updateSessionChip()">
+            </div>
+            <div class="session-field">
+                <label>BG</label>
+                <div class="capture-row">
+                    <div class="capture-display" id="capturedGlucoseDisplay">-- mmol/L</div>
+                    <button id="captureBgBtn" type="button" onclick="captureGlucose()">Capture</button>
+                </div>
+            </div>
+            <div class="session-field">
+                <label>Temp</label>
+                <div class="capture-row">
+                    <div class="capture-display" id="capturedTempDisplay" title="Sensor temperature">-- °C</div>
+                    <button id="captureTempBtn" type="button" onclick="captureTemperature()">Capture</button>
+                </div>
+            </div>
+            <div class="session-field">
+                <label>Model</label>
+                <button id="modelBtn" type="button" onclick="pickModelFile()">Import</button>
+            </div>
+        </div>
+
+        <div class="metrics" aria-label="Results">
+            <div class="metric">
+                <div class="metric-label">HR</div>
+                <div class="metric-value"><span id="hrValue">--</span><span class="metric-unit">bpm</span></div>
+            </div>
+            <div class="metric">
+                <div class="metric-label metric-label-row"><span>GLU</span><button class="mini-pill" id="gluModeChip" type="button" onclick="toggleGluMode()">IT</button></div>
+                <div class="metric-value"><span id="gluValue">--</span><span class="metric-unit" id="gluUnit">mmol/L</span></div>
+            </div>
+            <div class="metric metric-action" id="tempMetric" title="Sensor temperature - click to calibrate against a reference thermometer" role="button" tabindex="0" onclick="openTempCalibration()" onkeydown="handleTempMetricKey(event)">
+                <div class="metric-label metric-label-row">
+                    <span>TEMP</span>
+                    <button class="mini-pill hidden" id="tempCalChip" type="button" title="Session temperature calibration active">CAL</button>
+                </div>
+                <div class="metric-value"><span id="tempValue">--</span><span class="metric-unit">°C</span></div>
+            </div>
+        </div>
+
+        <div class="chart-stack">
+            <div class="chart-block">
+                <div class="chart-head">
+                    <div class="chart-name" style="color: var(--blue);">
+                        <span class="swatch"></span>
+                        <select id="dashboardModeSelect" class="chart-mode-select" title="Signal mode" aria-label="Signal mode" onchange="handleElectroModeChange(this.value)">
+                            <option value="ECG">ECG</option>
+                            <option value="EMG">EMG</option>
+                            <option value="EEG">EEG</option>
+                            <option value="EOG" disabled>EOG</option>
+                        </select>
+                    </div>
+                    <div class="chart-actions" aria-label="EP controls">
+                        <button class="chart-btn active" id="baselineBtn" type="button" title="Baseline on/off" aria-label="Baseline on/off" onclick="toggleBaselineCorrection()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"></path><path d="M4 16c2 0 2-8 4-8s2 8 4 8 2-8 4-8 2 8 4 8"></path></svg>
+                        </button>
+                        <button class="chart-btn active" id="filterBtn" type="button" title="Filter on/off" aria-label="Filter on/off" onclick="toggleElectroFilter()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.5V19l4 2v-8.5L22 3z"></path></svg>
+                        </button>
+                        <button class="chart-btn" id="ecgPlayBtn" type="button" title="Start/Pause ECG" aria-label="Start/Pause ECG" onclick="toggleTask('ECG')">
+                            <svg class="icon-play" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="8 5 19 12 8 19 8 5" fill="currentColor" stroke="currentColor"></polygon></svg>
+                            <svg class="icon-pause" viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5v14"></path><path d="M15 5v14"></path></svg>
+                        </button>
+                        <button class="chart-btn" id="ecgAllBtn" type="button" title="Show all ECG" aria-label="Show all ECG" onclick="toggleChartAll('ECG')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H3v5"></path><path d="M16 3h5v5"></path><path d="M8 21H3v-5"></path><path d="M16 21h5v-5"></path></svg>
+                        </button>
+                        <button class="chart-btn danger" id="ecgRestartBtn" type="button" title="Restart ECG" aria-label="Restart ECG" onclick="restartTask('ECG')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg>
+                        </button>
+                    </div>
+                    <div id="ecgRange" class="chart-range">0.0-5.0 s</div>
+                </div>
+                <canvas id="ecgCanvas" aria-label="ECG chart"></canvas>
+            </div>
+
+            <div class="chart-block" id="gluBlock">
+                <div class="chart-head">
+                    <div class="chart-name" style="color: var(--green);">
+                        <span class="swatch"></span>
+                        <span id="gluTitle">Glu i-t</span>
+                        <div class="mode-toggle" aria-label="Glucose mode">
+                            <button class="mode-chip active" id="gluItBtn" type="button" onclick="setGluMode('IT')">IT</button>
+                            <button class="mode-chip" id="gluRfBtn" type="button" onclick="setGluMode('RF')">RF</button>
+                        </div>
+                    </div>
+                    <div class="chart-actions" aria-label="Glucose controls">
+                        <button class="chart-btn" id="gluPlayBtn" type="button" title="Start/Pause glucose" aria-label="Start/Pause glucose" onclick="toggleTask('GLU')">
+                            <svg class="icon-play" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="8 5 19 12 8 19 8 5" fill="currentColor" stroke="currentColor"></polygon></svg>
+                            <svg class="icon-pause" viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5v14"></path><path d="M15 5v14"></path></svg>
+                        </button>
+                        <button class="chart-btn" id="gluAllBtn" type="button" title="Show all glucose" aria-label="Show all glucose" onclick="toggleChartAll('GLU')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H3v5"></path><path d="M16 3h5v5"></path><path d="M8 21H3v-5"></path><path d="M16 21h5v-5"></path></svg>
+                        </button>
+                        <button class="chart-btn danger" id="gluRestartBtn" type="button" title="Restart glucose" aria-label="Restart glucose" onclick="restartTask('GLU')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg>
+                        </button>
+                    </div>
+                    <div id="gluRange" class="chart-range">0.0-5.0 s</div>
+                </div>
+                <canvas id="gluCanvas" aria-label="Glucose current chart"></canvas>
+            </div>
+
+            <div class="chart-block">
+                <div class="chart-head">
+                    <div class="chart-name" id="rtName" style="color: var(--red);"><span class="swatch"></span><span id="rtTitle">Pulse</span></div>
+                    <div class="chart-actions" aria-label="R-t controls">
+                        <button class="chart-btn switch" type="button" title="Switch R-t channel" aria-label="Switch R-t channel" onclick="switchRtMode()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"></path><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><path d="M7 23l-4-4 4-4"></path><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+                        </button>
+                        <button class="chart-btn" id="rtPlayBtn" type="button" title="Start/Pause R-t" aria-label="Start/Pause R-t" onclick="toggleTask(activeRtMode)">
+                            <svg class="icon-play" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="8 5 19 12 8 19 8 5" fill="currentColor" stroke="currentColor"></polygon></svg>
+                            <svg class="icon-pause" viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5v14"></path><path d="M15 5v14"></path></svg>
+                        </button>
+                        <button class="chart-btn" id="rtAllBtn" type="button" title="Show all R-t" aria-label="Show all R-t" onclick="toggleChartAll(activeRtMode)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H3v5"></path><path d="M16 3h5v5"></path><path d="M8 21H3v-5"></path><path d="M16 21h5v-5"></path></svg>
+                        </button>
+                        <button class="chart-btn danger" type="button" title="Restart R-t" aria-label="Restart R-t" onclick="restartTask(activeRtMode)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg>
+                        </button>
+                    </div>
+                    <div id="rtRange" class="chart-range">0.0-5.0 s</div>
+                </div>
+                <canvas id="rtCanvas" aria-label="R-t chart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <input id="calFile" class="hidden" type="file" accept=".txt,.csv,.tsv" onchange="handleCalibrationFile(event)">
+    <input id="modelFile" class="hidden" type="file" accept=".json,.txt" onchange="handleModelFile(event)">
+
+    <script>
+        const BLE_SERVICE_UUID = "ded10001-c601-f61b-7114-ff89d327e93a";
+        const BLE_WRITE_UUID = "ded10002-c601-f61b-7114-ff89d327e93a";
+        const BLE_READ_UUID = "ded10003-c601-f61b-7114-ff89d327e93a";
+
+        // taskId and packetPoints come from EP diagnostics; TaskStart/TaskStop only use channelPid + taskPid.
+        const TASKS = {
+            ECG: { channelPid: 0x01, taskPid: 0x00, taskId: 0x5010, samplingRate: 250, packetPoints: 40, command: "ECG" },
+            // EP EMG sends signed int16 samples at 1 kHz; the older 500 Hz time
+            // base came from incorrectly grouping two int16 samples as float32.
+            EMG: { channelPid: 0x01, taskPid: 0x01, taskId: 0x5011, samplingRate: 1000, packetPoints: 80, command: "EMG" },
+            EEG: { channelPid: 0x01, taskPid: 0x02, taskId: 0x5012, samplingRate: 125, packetPoints: 40, command: "EEG" },
+            EOG: { channelPid: 0x01, taskPid: 0x00, samplingRate: 250, packetPoints: 40, command: "EOG", supported: false },
+            GLU: { channelPid: 0x01, taskPid: 0x00, samplingRate: 63.5, command: "IT" },
+            TEMP: { channelPid: 0x01, taskPid: 0x01, samplingRate: 63.5, command: "RT" },
+            PULSE: { channelPid: 0x01, taskPid: 0x01, samplingRate: 63.5, command: "RT" },
+            PREVIEW: { channelPid: 0x01, taskPid: 0x00, samplingRate: 250, command: "ECG" }
+        };
+
+        const CHIP_DEFAULT_NAMES = {
+            2: "WeSys_EP2",
+            8: "WeSys_WS8_ML"
+        };
+
+        const ELECTRO_MODES = {
+            ECG: { label: "ECG", samplingRate: 250, unit: "mV" },
+            EMG: { label: "EMG", samplingRate: 1000, unit: "mV" },
+            EEG: { label: "EEG", samplingRate: 125, unit: "mV" },
+            EOG: { label: "EOG", samplingRate: 250, unit: "mV", supported: false }
+        };
+
+        const FILTER_PRESETS = {
+            ECG: { hp: 0.5, lp: 100, notch: 50 },
+            EMG: { hp: 20, lp: 450, notch: 50 },
+            EEG: { hp: 0.05, lp: 50, notch: 50 },
+            EOG: { hp: 0.01, lp: 30, notch: 50 }
+        };
+
+        const BASELINE_PRESETS = {
+            ECG: { tau: 1.8, minGuard: 0.08, guard: 4.0, peakLeak: 0.004 },
+            EMG: { tau: 1.2, minGuard: 0.05, guard: 5.0, peakLeak: 0.04 },
+            EEG: { tau: 6.0, minGuard: 0.02, guard: 4.0, peakLeak: 0.02 },
+            EOG: { tau: 10.0, minGuard: 0.05, guard: 5.0, peakLeak: 0.01 }
+        };
+
+        const VIEW_WINDOW = 5;
+        const ECG_SCALE = 1000;
+        const GLU_SCALE = 1000;
+        const RT_SCALE = 1000;
+        const MAX_ELECTRO_ABS_MV = 1000000;
+        const PREVIEW_BUFFER_SECONDS = 10;
+        const RENDER_INTERVAL_MS = 50;
+        const DEFAULT_RECORD_DELAY_SEC = 3;
+        const DEFAULT_ROOM_TEMPERATURE_C = 25;
+        const TEMP_CALC_START_SEC = 3.0;
+        const TEMP_BASELINE_WINDOW_SEC = 3.0;
+        const TEMP_AVG_WINDOW_SEC = 5.0;
+        const GLU_MODES = {
+            IT: "IT",
+            RF: "RF"
+        };
+        const RF_CAPTURE_TARGET_SEC = 60;
+        const STATES = {
+            IDLE: "IDLE",
+            PREVIEW_RUNNING: "PREVIEW_RUNNING",
+            ECG_RUNNING: "ECG_RUNNING",
+            GLU_RUNNING: "GLU_RUNNING",
+            TEMP_RUNNING: "TEMP_RUNNING",
+            PULSE_RUNNING: "PULSE_RUNNING"
+        };
+
+        let bleDevice = null;
+        let bleWriteChar = null;
+        let bleReadChar = null;
+        let ad5941Device = null;
+        let ad5941WriteChar = null;
+        let ad5941ReadChar = null;
+        let activeAd5941Task = null;
+        let sessionStartMs = 0;
+        let recordDelaySec = DEFAULT_RECORD_DELAY_SEC;
+        let sessionHasData = false;
+        let clearingSession = false;
+        let appState = STATES.IDLE;
+        let activeTask = null;
+        let selectedTask = "ECG";
+        let activeRtMode = "PULSE";
+        let electroMode = "ECG";
+        let lastElectroTaskPid = NaN;
+        let lastElectroTaskPidNotice = "";
+        let baselineEnabled = true;
+        let electroFilterEnabled = true;
+        let baselineCorrector = null;
+        let electroFilter = null;
+
+        let totalChannels = 2;
+        let ecgStreamMode = "SINGLE";
+        let selectedEcgChannel = 0;
+        let rawDataBuffer = [];
+        let miniCharts = [];
+
+        let ecgData = [];
+        let glucoseData = [];
+        let tempRtData = [];
+        let pulseRtData = [];
+
+        let previewSampleIndex = 0;
+        let ecgSampleIndex = 0;
+        let emgBleClock = { packets: 0, samples: 0, intervalSamples: 0, elapsedMs: 0, lastPacketMs: NaN };
+        let previewInterleaveChannel = 0;
+        let ecgInterleaveChannel = 0;
+        let glucoseSampleIndex = 0;
+        let tempSampleIndex = 0;
+        let pulseSampleIndex = 0;
+        let tempRtBaselineResistance = NaN;
+        let renderRaf = null;
+        let lastRenderMs = 0;
+        let metricsInterval = null;
+        let noticeTimer = 0;
+
+        let calibrationFileName = "";
+        let gluMode = GLU_MODES.IT;
+        let rfState = "idle";
+        let rfPredictionValue = NaN;
+        let rfPredictionError = "";
+        let rfCompletionTimer = 0;
+        let personalModel = null;
+        let personalModelName = "";
+        let capturedGlucoseMmol = NaN;
+        let capturedTemperatureC = NaN;
+        let glucoseCalibration = [
+            [0.022, 1.790],
+            [0.078, 2.754],
+            [0.790, 6.610],
+            [1.131, 11.431]
+        ];
+        let temperatureCalibration = [
+            [726.1, 23.9],
+            [730.8, 30.0],
+            [734.8, 35.0],
+            [741.0, 40.0]
+        ];
+        let temperatureCalibrationMode = "absolute";
+        // Session-only two-point temperature calibration. Deliberately not persisted anywhere:
+        // reloading the page clears it and the imported calibration curve applies again.
+        let sessionTempCalibration = null; // { dTPerOhm, refTempC, roomTempC, refDeltaR, baselineResistance }
+        const MIN_TEMP_CAL_DELTA_R = 1.0;  // ohm - the two anchors are too close to fit a slope below this
+        const MIN_TEMP_CAL_DELTA_T = 1.0;  // C
+        const TEMP_CAL_DRIFT_LIMIT = 0.3;  // ohm between the last two 5 s windows before we call it drifting
+
+        let charts = {};
+
+        function css(name) {
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        }
+
+        function numericValue(id, fallback) {
+            const el = document.getElementById(id);
+            const value = el ? parseFloat(el.value) : NaN;
+            return Number.isFinite(value) ? value : fallback;
+        }
+
+        function roomTemperatureC() {
+            return numericValue("roomTemperature", DEFAULT_ROOM_TEMPERATURE_C);
+        }
+
+        function textValue(id, fallback) {
+            const el = document.getElementById(id);
+            const value = el ? el.value.trim() : "";
+            return value || fallback;
+        }
+
+        function toggleSessionPanel() {
+            const panel = document.getElementById("sessionPanel");
+            if (panel) panel.classList.toggle("hidden");
+        }
+
+        function sessionSubjectId() {
+            const value = textValue("subjectIdInput", "01").replace(/\s+/g, "");
+            return value || "01";
+        }
+
+        function updateSessionChip() {
+            const chip = document.getElementById("sessionChip");
+            if (chip) chip.textContent = "ID " + sessionSubjectId();
+        }
+
+        function capturedGlucoseValue() {
+            if (Number.isFinite(capturedGlucoseMmol)) return capturedGlucoseMmol;
+            return latestItGlucoseValue();
+        }
+
+        function latestItGlucoseValue() {
+            return calcGlucose(charts.GLU ? charts.GLU.metricEnd() : lastTime(glucoseData));
+        }
+
+        function sessionRole() {
+            if (gluMode === GLU_MODES.RF) {
+                return Number.isFinite(capturedGlucoseValue()) ? "calibration" : "prediction";
+            }
+            return "record";
+        }
+
+        function captureGlucose() {
+            const glu = latestItGlucoseValue();
+            if (!Number.isFinite(glu)) {
+                showNotice("No BG");
+                return;
+            }
+            capturedGlucoseMmol = glu;
+            updateCapturedGlucoseButton();
+            showNotice("BG captured");
+        }
+
+        function updateCapturedGlucoseButton() {
+            const btn = document.getElementById("captureBgBtn");
+            const display = document.getElementById("capturedGlucoseDisplay");
+            const value = capturedGlucoseMmol;
+            if (display) {
+                display.textContent = Number.isFinite(value) ? value.toFixed(2) + " mmol/L" : "-- mmol/L";
+                display.classList.toggle("good", Number.isFinite(value));
+            }
+            if (!btn) return;
+            if (Number.isFinite(value)) {
+                btn.textContent = "Update";
+                btn.classList.add("good");
+            } else {
+                btn.textContent = "Capture";
+                btn.classList.remove("good");
+            }
+        }
+
+        function captureDurationSec() {
+            const values = [lastTime(ecgData), lastTime(glucoseData), lastTime(tempRtData), lastTime(pulseRtData)]
+                .filter(Number.isFinite);
+            return values.length ? Math.max.apply(null, values) : 0;
+        }
+
+        function captureTemperature() {
+            const temp = calcSensorTemperature();
+            if (!Number.isFinite(temp)) {
+                const end = lastTime(tempRtData);
+                if (Number.isFinite(end) && end < TEMP_CALC_START_SEC + TEMP_BASELINE_WINDOW_SEC) {
+                    showNotice(end < TEMP_CALC_START_SEC ? "Testing (wait 3s)" : "Building temp baseline");
+                } else {
+                    showNotice("No temp");
+                }
+                return;
+            }
+            capturedTemperatureC = temp;
+            updateCapturedTempButton();
+            showNotice("Temp captured");
+        }
+
+        function editManualTemperature() {
+            const temp = calcSensorTemperature();
+            if (!Number.isFinite(temp)) {
+                const end = lastTime(tempRtData);
+                if (Number.isFinite(end) && end < TEMP_CALC_START_SEC + TEMP_BASELINE_WINDOW_SEC) {
+                    showNotice(end < TEMP_CALC_START_SEC ? "Testing (wait 3s)" : "Building temp baseline");
+                } else {
+                    showNotice("No temp");
+                }
+                return;
+            }
+            capturedTemperatureC = temp;
+            updateCapturedTempButton();
+            updateMetrics();
+            showNotice("Temp captured");
+        }
+
+        function updateCapturedTempButton() {
+            const btn = document.getElementById("captureTempBtn");
+            const display = document.getElementById("capturedTempDisplay");
+            const value = capturedTemperatureC;
+            if (display) {
+                display.textContent = Number.isFinite(value) ? value.toFixed(1) + " °C" : "-- °C";
+                display.classList.toggle("good", Number.isFinite(value));
+            }
+            if (!btn) return;
+            if (Number.isFinite(capturedTemperatureC)) {
+                btn.textContent = "Update";
+                btn.classList.add("good");
+            } else {
+                btn.textContent = "Capture";
+                btn.classList.remove("good");
+            }
+        }
+
+        function pickModelFile() {
+            document.getElementById("modelFile").click();
+        }
+
+        function handleModelFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = String(e.target.result || "").trim();
+                let model = null;
+                try {
+                    model = JSON.parse(text);
+                } catch (err) {
+                    const fixed = parseFloat(text);
+                    if (Number.isFinite(fixed)) model = { model_id: file.name, fixed_prediction: fixed };
+                }
+                if (!model || typeof model !== "object") {
+                    showNotice("Model invalid");
+                    event.target.value = "";
+                    return;
+                }
+                personalModel = model;
+                personalModelName = String(model.model_id || model.id || model.name || file.name);
+                updateModelButton();
+                autoPredictRfIfReady();
+                updateMetrics();
+                showNotice(Number.isFinite(rfPredictionValue) ? "Prediction ready" : "Model loaded");
+                event.target.value = "";
+            };
+            reader.readAsText(file);
+        }
+
+        function updateModelButton() {
+            const btn = document.getElementById("modelBtn");
+            if (!btn) return;
+            if (personalModel) {
+                btn.textContent = personalModelName || "Model";
+                btn.classList.add("good");
+            } else {
+                btn.textContent = "Import";
+                btn.classList.remove("good");
+            }
+        }
+
+        function clearPersonalModel() {
+            personalModel = null;
+            personalModelName = "";
+            resetRfPredictionState();
+            updateModelButton();
+        }
+
+        function toggleGluMode() {
+            setGluMode(gluMode === GLU_MODES.IT ? GLU_MODES.RF : GLU_MODES.IT);
+        }
+
+        async function setGluMode(mode) {
+            mode = mode === GLU_MODES.RF ? GLU_MODES.RF : GLU_MODES.IT;
+            if (gluMode === mode) {
+                updateGluModeUi();
+                return;
+            }
+            if (mode === GLU_MODES.RF && activeAd5941Task === "GLU") {
+                await stopAd5941Task(false);
+            }
+            gluMode = mode;
+            if (gluMode === GLU_MODES.RF) {
+                activeRtMode = "PULSE";
+                applyRtMode();
+            }
+            resetRfPredictionState();
+            updateGluModeUi();
+            updateMetrics();
+            showNotice(gluMode === GLU_MODES.RF ? "RF mode" : "IT mode");
+        }
+
+        function updateGluModeUi() {
+            const isRf = gluMode === GLU_MODES.RF;
+            const chip = document.getElementById("gluModeChip");
+            if (chip) chip.textContent = gluMode;
+            const title = document.getElementById("gluTitle");
+            if (title) title.textContent = isRf ? "Glu RF" : "Glu i-t";
+            setButtonState("gluItBtn", !isRf, "active");
+            setButtonState("gluRfBtn", isRf, "active");
+            const block = document.getElementById("gluBlock");
+            if (block) block.classList.toggle("disabled", isRf);
+            setDisabled("gluPlayBtn", isRf);
+            setDisabled("gluRestartBtn", isRf);
+            if (charts.GLU) {
+                charts.GLU.unit = isRf ? "" : "uA";
+                charts.GLU.draw();
+            }
+        }
+
+        function resetRfPredictionState() {
+            rfState = "idle";
+            rfPredictionValue = NaN;
+            rfPredictionError = "";
+            clearTimeout(rfCompletionTimer);
+            rfCompletionTimer = 0;
+        }
+
+        function startRfCaptureState() {
+            rfState = "collecting";
+            rfPredictionValue = NaN;
+            rfPredictionError = "";
+            clearTimeout(rfCompletionTimer);
+            rfCompletionTimer = 0;
+        }
+
+        function rfElapsedSec() {
+            const end = rfSignalEndSec();
+            return Number.isFinite(end) ? Math.min(RF_CAPTURE_TARGET_SEC, Math.max(0, end)) : 0;
+        }
+
+        function rfSignalEndSec() {
+            const ecgEnd = lastTime(ecgData);
+            const pulseEnd = lastTime(pulseRtData);
+            if (!Number.isFinite(ecgEnd) || !Number.isFinite(pulseEnd)) return NaN;
+            return Math.min(ecgEnd, pulseEnd);
+        }
+
+        function completeRfCaptureSoon() {
+            if (rfState !== "collecting" || rfCompletionTimer) return;
+            rfState = "predicting";
+            updateMetrics();
+            rfCompletionTimer = setTimeout(async function() {
+                rfCompletionTimer = 0;
+                try {
+                    rfPredictionValue = predictGlucoseFromModel();
+                } catch (err) {
+                    console.error(err);
+                    rfPredictionValue = NaN;
+                    rfPredictionError = "Predict error";
+                }
+                rfState = Number.isFinite(rfPredictionValue) ? "done" : "no_model";
+                if (activeTask || activeAd5941Task) await stopActiveTask(false);
+                updateMetrics();
+                showNotice(Number.isFinite(rfPredictionValue) ? "Prediction ready" : (rfPredictionError || "No Model"));
+            }, 500);
+        }
+
+        function canCompleteRfCapture() {
+            return gluMode === GLU_MODES.RF && rfState === "collecting" && rfElapsedSec() >= RF_CAPTURE_TARGET_SEC;
+        }
+
+        function predictGlucoseFromModel() {
+            rfPredictionError = "";
+            if (!personalModel) {
+                rfPredictionError = "No Model";
+                return NaN;
+            }
+            const keys = ["prediction_glucose_mmol_L", "fixed_prediction", "prediction", "glucose"];
+            for (let i = 0; i < keys.length; i++) {
+                const value = parseFloat(personalModel[keys[i]]);
+                if (Number.isFinite(value)) return value;
+            }
+            const features = extractRfFeatures();
+            if (!features) {
+                rfPredictionError = "No Feature";
+                return NaN;
+            }
+            const predicted = predictTreeEnsemble(personalModel, features);
+            if (Number.isFinite(predicted)) return predicted;
+            rfPredictionError = "Model invalid";
+            return NaN;
+        }
+
+        function extractRfFeatures() {
+            const end = rfSignalEndSec();
+            if (!Number.isFinite(end)) return null;
+            const ecg = recentWindowUntil(ecgData, RF_CAPTURE_TARGET_SEC, end).filter(validPoint);
+            const pulse = recentWindowUntil(pulseRtData, RF_CAPTURE_TARGET_SEC, end).filter(validPoint);
+            if (ecg.length < 80 || pulse.length < 40) return null;
+
+            const ecgPeaks = detectBestPeaks(ecg, 0.35, 0.68);
+            const pulsePeaks = detectBestPeaks(smoothPoints(pulse, 3), 0.45, 0.52);
+            if (ecgPeaks.length < 4 || pulsePeaks.length < 4) return null;
+
+            const pulseUnits = buildPulseUnits(pulse, pulsePeaks);
+            if (pulseUnits.length < 3) return null;
+
+            const rrMs = [];
+            for (let i = 1; i < ecgPeaks.length; i++) {
+                const rr = (ecgPeaks[i].t - ecgPeaks[i - 1].t) * 1000;
+                if (rr > 300 && rr < 2000) rrMs.push(rr);
+            }
+            if (rrMs.length < 3) return null;
+
+            const matched = [];
+            for (let i = 0; i < ecgPeaks.length; i++) {
+                const r = ecgPeaks[i];
+                for (let j = 0; j < pulseUnits.length; j++) {
+                    const u = pulseUnits[j];
+                    if (u.onset.t <= r.t || u.peak.t <= u.onset.t || u.offset.t <= u.onset.t) continue;
+                    const pttPeak = (u.peak.t - r.t) * 1000;
+                    if (pttPeak > 100 && pttPeak < 700) {
+                        matched.push({
+                            r: r,
+                            unit: u,
+                            pttPeak: pttPeak,
+                            pttOnset: (u.onset.t - r.t) * 1000,
+                            rise: (u.peak.t - u.onset.t) * 1000,
+                            fall: (u.offset.t - u.peak.t) * 1000
+                        });
+                        break;
+                    }
+                }
+            }
+            if (matched.length < 3) return null;
+
+            const temp = calcTemperature();
+            const fallbackTemp = modelDefaultFeature("temperature", 35.0);
+            const now = new Date();
+            const hour = now.getHours() + now.getMinutes() / 60;
+            return {
+                ecg_rr_mean: mean(rrMs),
+                ecg_rr_std: std(rrMs),
+                ecg_peak_mean: mean(matched.map(function(item) { return item.r.y; })),
+                ecg_qrs_mean: mean(ecgPeaks.map(function(peak) { return estimatePeakWidthMs(ecg, peak); }).filter(Number.isFinite)),
+                ptt_peak_mean: mean(matched.map(function(item) { return item.pttPeak; })),
+                ptt_onset_mean: mean(matched.map(function(item) { return item.pttOnset; })),
+                ppg_rise_time_mean: mean(matched.map(function(item) { return item.rise; })),
+                ppg_fall_time_mean: mean(matched.map(function(item) { return item.fall; })),
+                ppg_rise_ratio_mean: mean(matched.map(function(item) {
+                    const total = item.rise + item.fall;
+                    return total > 0 ? item.rise / total : NaN;
+                }).filter(Number.isFinite)),
+                temperature: Number.isFinite(temp) ? temp : fallbackTemp,
+                hour_sin: Math.sin(2 * Math.PI * hour / 24),
+                hour_cos: Math.cos(2 * Math.PI * hour / 24)
+            };
+        }
+
+        function predictTreeEnsemble(model, features) {
+            const trees = Array.isArray(model.trees) ? model.trees : [];
+            const names = Array.isArray(model.feature_names) ? model.feature_names : [];
+            if (!trees.length || !names.length) return NaN;
+            const x = [];
+            for (let i = 0; i < names.length; i++) {
+                const name = names[i];
+                let value = parseFloat(features[name]);
+                if (!Number.isFinite(value)) value = modelDefaultFeature(name, NaN);
+                if (!Number.isFinite(value)) return NaN;
+                x.push(value);
+            }
+            let sum = 0;
+            let count = 0;
+            for (let i = 0; i < trees.length; i++) {
+                const value = predictTree(trees[i], x);
+                if (Number.isFinite(value)) {
+                    sum += value;
+                    count++;
+                }
+            }
+            return count ? sum / count : NaN;
+        }
+
+        function predictTree(tree, x) {
+            const left = tree.children_left || tree.left;
+            const right = tree.children_right || tree.right;
+            const feature = tree.feature;
+            const threshold = tree.threshold;
+            const value = tree.value;
+            if (!left || !right || !feature || !threshold || !value) return NaN;
+            let node = 0;
+            for (let depth = 0; depth < 1000; depth++) {
+                const f = feature[node];
+                const l = left[node];
+                const r = right[node];
+                if (f < 0 || l < 0 || r < 0) return parseFloat(value[node]);
+                node = x[f] <= threshold[node] ? l : r;
+                if (node == null || node < 0 || node >= value.length) return NaN;
+            }
+            return NaN;
+        }
+
+        function modelDefaultFeature(name, fallback) {
+            const defaults = personalModel && personalModel.default_features ? personalModel.default_features : {};
+            const value = parseFloat(defaults[name]);
+            return Number.isFinite(value) ? value : fallback;
+        }
+
+        function mean(values) {
+            const clean = values.filter(Number.isFinite);
+            if (!clean.length) return NaN;
+            return clean.reduce(function(sum, value) { return sum + value; }, 0) / clean.length;
+        }
+
+        function std(values) {
+            const clean = values.filter(Number.isFinite);
+            if (clean.length < 2) return 0;
+            const avg = mean(clean);
+            const variance = mean(clean.map(function(value) {
+                return Math.pow(value - avg, 2);
+            }));
+            return Number.isFinite(variance) ? Math.sqrt(variance) : NaN;
+        }
+
+        function validPoint(pt) {
+            return pt && Number.isFinite(pt[0]) && Number.isFinite(pt[1]);
+        }
+
+        function recentWindow(data, seconds) {
+            const end = lastTime(data);
+            if (!Number.isFinite(end)) return [];
+            return recentWindowUntil(data, seconds, end);
+        }
+
+        function recentWindowUntil(data, seconds, end) {
+            if (!Number.isFinite(end)) return [];
+            const start = Math.max(0, end - seconds);
+            return data.filter(function(pt) {
+                return validPoint(pt) && pt[0] >= start && pt[0] <= end;
+            });
+        }
+
+        function smoothPoints(points, radius) {
+            if (!points.length || radius <= 0) return points.slice();
+            return points.map(function(pt, index) {
+                let sum = 0;
+                let count = 0;
+                for (let i = Math.max(0, index - radius); i <= Math.min(points.length - 1, index + radius); i++) {
+                    sum += points[i][1];
+                    count++;
+                }
+                return [pt[0], count ? sum / count : pt[1]];
+            });
+        }
+
+        function detectBestPeaks(points, minDistanceSec, thresholdRatio) {
+            const positive = detectPeaks(points, minDistanceSec, thresholdRatio, 1);
+            const negative = detectPeaks(points, minDistanceSec, thresholdRatio, -1);
+            return negative.length > positive.length ? negative : positive;
+        }
+
+        function detectPeaks(points, minDistanceSec, thresholdRatio, polarity) {
+            if (points.length < 3) return [];
+            const ys = points.map(function(pt) { return polarity * pt[1]; });
+            const min = Math.min.apply(null, ys);
+            const max = Math.max.apply(null, ys);
+            const range = max - min;
+            if (!Number.isFinite(range) || range <= 0) return [];
+            const threshold = min + range * thresholdRatio;
+            const peaks = [];
+            let lastT = -Infinity;
+            for (let i = 1; i < points.length - 1; i++) {
+                const y = ys[i];
+                if (y < threshold || y < ys[i - 1] || y < ys[i + 1]) continue;
+                const t = points[i][0];
+                if (t - lastT < minDistanceSec) {
+                    const last = peaks[peaks.length - 1];
+                    if (last && y > last.y) {
+                        peaks[peaks.length - 1] = { index: i, t: t, y: y, polarity: polarity };
+                    }
+                    continue;
+                }
+                peaks.push({ index: i, t: t, y: y, polarity: polarity });
+                lastT = t;
+            }
+            return peaks;
+        }
+
+        function buildPulseUnits(points, peaks) {
+            const units = [];
+            for (let i = 0; i < peaks.length; i++) {
+                const peak = peaks[i];
+                const onset = findLocalExtreme(points, peak.t - 0.65, peak.t - 0.05, peak.polarity, "min");
+                const nextOnset = i + 1 < peaks.length
+                    ? findLocalExtreme(points, peaks[i + 1].t - 0.65, peaks[i + 1].t - 0.05, peak.polarity, "min")
+                    : null;
+                if (!onset || !nextOnset || nextOnset.t <= onset.t) continue;
+                units.push({ onset: onset, peak: peak, offset: nextOnset });
+            }
+            return units;
+        }
+
+        function findLocalExtreme(points, start, end, polarity, kind) {
+            let best = null;
+            for (let i = 0; i < points.length; i++) {
+                const t = points[i][0];
+                if (t < start || t > end) continue;
+                const y = polarity * points[i][1];
+                if (!best || (kind === "min" ? y < best.y : y > best.y)) {
+                    best = { index: i, t: t, y: y, polarity: polarity };
+                }
+            }
+            return best;
+        }
+
+        function estimatePeakWidthMs(points, peak) {
+            if (!peak || !Number.isFinite(peak.index)) return NaN;
+            const center = peak.index;
+            const polarity = peak.polarity || 1;
+            const leftBound = Math.max(0, center - 30);
+            const rightBound = Math.min(points.length - 1, center + 30);
+            let base = Infinity;
+            for (let i = leftBound; i <= rightBound; i++) {
+                const y = polarity * points[i][1];
+                if (y < base) base = y;
+            }
+            const half = base + (peak.y - base) * 0.5;
+            let leftIndex = center;
+            let rightIndex = center;
+            while (leftIndex > leftBound && polarity * points[leftIndex][1] > half) leftIndex--;
+            while (rightIndex < rightBound && polarity * points[rightIndex][1] > half) rightIndex++;
+            const width = (points[rightIndex][0] - points[leftIndex][0]) * 1000;
+            return width > 0 && width < 300 ? width : NaN;
+        }
+
+        function getElectroConfig(mode) {
+            return ELECTRO_MODES[mode || electroMode] || ELECTRO_MODES.ECG;
+        }
+
+        function getElectroSamplingRate(mode) {
+            return getElectroConfig(mode).samplingRate;
+        }
+
+        function getElectroTask(mode) {
+            const key = mode || electroMode;
+            return TASKS[key] || TASKS.ECG;
+        }
+
+        function getPreviewTask() {
+            const task = getElectroTask(electroMode);
+            return Object.assign({}, task);
+        }
+
+        function isElectroKind(kind) {
+            return kind === "PREVIEW" || Boolean(ELECTRO_MODES[kind]);
+        }
+
+        function isMeasurementElectroKind(kind) {
+            return kind !== "PREVIEW" && Boolean(ELECTRO_MODES[kind]);
+        }
+
+        function resolveElectroRequest(kind) {
+            return kind === "ECG" ? electroMode : kind;
+        }
+
+        function getTaskConfig(kind) {
+            if (kind === "PREVIEW") return getPreviewTask();
+            if (isElectroKind(kind)) return getElectroTask(kind);
+            return TASKS[kind];
+        }
+
+        function matchesTask(channelPid, taskPid, task) {
+            return task && channelPid === task.channelPid && taskPid === task.taskPid;
+        }
+
+        function matchesElectroPacket(channelPid, taskPid, expectedTask) {
+            if (!expectedTask || channelPid !== expectedTask.channelPid) return false;
+            lastElectroTaskPid = taskPid;
+            if (taskPid !== expectedTask.taskPid) {
+                const key = electroMode + ":" + expectedTask.taskPid + ":" + taskPid;
+                if (key !== lastElectroTaskPidNotice) {
+                    console.warn("EP taskPid mismatch: expected 0x" + hexByte(expectedTask.taskPid) + ", received 0x" + hexByte(taskPid) + ". Packet ignored for " + electroMode + ".");
+                    lastElectroTaskPidNotice = key;
+                }
+                return false;
+            }
+            return true;
+        }
+
+        function hexByte(value) {
+            return (value & 0xff).toString(16).toUpperCase().padStart(2, "0");
+        }
+
+        function scaledElectroValue(rawValue) {
+            const value = rawValue * ECG_SCALE;
+            if (!Number.isFinite(value) || Math.abs(value) > MAX_ELECTRO_ABS_MV) return NaN;
+            return value;
+        }
+
+        function previewBufferLimit(rate) {
+            const seconds = Math.max(PREVIEW_BUFFER_SECONDS, VIEW_WINDOW + 2);
+            return Math.ceil(Math.max(1, rate) * seconds);
+        }
+
+        function trimPreviewBuffer(buffer, rate) {
+            if (!buffer) return;
+            const limit = previewBufferLimit(rate);
+            if (buffer.length > limit) buffer.splice(0, buffer.length - limit);
+        }
+
+        function visibleRecentPoints(data, seconds) {
+            if (!data || !data.length) return [];
+            const end = data[data.length - 1][0];
+            const start = Math.max(0, end - seconds);
+            const visible = [];
+            for (let i = data.length - 1; i >= 0; i--) {
+                const pt = data[i];
+                if (!pt || pt[0] < start) break;
+                if (pt[0] <= end && Number.isFinite(pt[0]) && Number.isFinite(pt[1])) visible.push(pt);
+            }
+            visible.reverse();
+            return visible;
+        }
+
+        function decimateForCanvas(points, width) {
+            if (!points || points.length < 3 || !width || points.length <= width * 2) return points || [];
+            const bucketSize = Math.max(1, Math.floor(points.length / Math.max(1, width)));
+            const reduced = [];
+            for (let i = 0; i < points.length; i += bucketSize) {
+                let minPt = points[i];
+                let maxPt = points[i];
+                const end = Math.min(points.length, i + bucketSize);
+                for (let j = i + 1; j < end; j++) {
+                    if (points[j][1] < minPt[1]) minPt = points[j];
+                    if (points[j][1] > maxPt[1]) maxPt = points[j];
+                }
+                if (minPt[0] <= maxPt[0]) {
+                    reduced.push(minPt, maxPt);
+                } else {
+                    reduced.push(maxPt, minPt);
+                }
+            }
+            return reduced;
+        }
+
+        function resetElectroProcessing() {
+            if (electroFilter) electroFilter.reset();
+            if (baselineCorrector) baselineCorrector.reset();
+        }
+
+        async function handleElectroModeChange(mode) {
+            if (!ELECTRO_MODES[mode]) mode = "ECG";
+            if (ELECTRO_MODES[mode].supported === false) {
+                showNotice(mode + " legacy only");
+                syncElectroModeControls();
+                return;
+            }
+            if (mode === electroMode) {
+                syncElectroModeControls();
+                return;
+            }
+            if ((activeTask && isElectroKind(activeTask)) || appState === STATES.PREVIEW_RUNNING) {
+                await stopBleTask(false);
+                appState = STATES.IDLE;
+            }
+            electroMode = mode;
+            selectedTask = electroMode;
+            configureElectroMode();
+            resetPreviewData();
+            clearTaskData(electroMode);
+            showNotice(getElectroConfig().label + " mode");
+        }
+
+        function configureElectroMode() {
+            const rate = getElectroSamplingRate();
+            TASKS.PREVIEW.samplingRate = rate;
+            rebuildElectroFilter();
+            rebuildBaselineCorrector();
+            syncElectroModeControls();
+            updateElectroLabels();
+            updateMetrics();
+        }
+
+        function syncElectroModeControls() {
+            ["electroModeSelect", "dashboardModeSelect"].forEach(function(id) {
+                const el = document.getElementById(id);
+                if (el) el.value = electroMode;
+            });
+        }
+
+        function updateElectroLabels() {
+            const config = getElectroConfig();
+            const channelSelect = document.getElementById("ecgChannelSelect");
+            if (channelSelect) {
+                Array.from(channelSelect.options).forEach(function(option, index) {
+                    option.textContent = ecgChannelLabel(index);
+                });
+            }
+            if (charts.ECG) {
+                charts.ECG.unit = config.unit;
+                charts.ECG.draw();
+            }
+            const ecgCanvas = document.getElementById("ecgCanvas");
+            if (ecgCanvas) ecgCanvas.setAttribute("aria-label", config.label + " chart");
+            const playBtn = document.getElementById("ecgPlayBtn");
+            const allBtn = document.getElementById("ecgAllBtn");
+            const restartBtn = document.getElementById("ecgRestartBtn");
+            if (playBtn) {
+                playBtn.title = "Start/Pause " + config.label;
+                playBtn.setAttribute("aria-label", "Start/Pause " + config.label);
+            }
+            if (allBtn) {
+                allBtn.title = "Show all " + config.label;
+                allBtn.setAttribute("aria-label", "Show all " + config.label);
+            }
+            if (restartBtn) {
+                restartBtn.title = "Restart " + config.label;
+                restartBtn.setAttribute("aria-label", "Restart " + config.label);
+            }
+        }
+
+        function rebuildElectroFilter() {
+            electroFilter = electroFilterEnabled ? new FilterChain(electroMode) : null;
+        }
+
+        function rebuildBaselineCorrector() {
+            baselineCorrector = baselineEnabled ? new BaselineCorrector(electroMode) : null;
+        }
+
+        function toggleBaselineCorrection() {
+            baselineEnabled = !baselineEnabled;
+            rebuildBaselineCorrector();
+            clearTaskData(electroMode);
+            updateUiState();
+            showNotice(baselineEnabled ? "Baseline on" : "Baseline off");
+        }
+
+        function toggleElectroFilter() {
+            electroFilterEnabled = !electroFilterEnabled;
+            rebuildElectroFilter();
+            clearTaskData(electroMode);
+            updateUiState();
+            showNotice(electroFilterEnabled ? "Filter on" : "Filter off");
+        }
+
+        function resetSessionClock() {
+            sessionStartMs = performance.now();
+            recordDelaySec = Math.max(0, numericValue("recordDelay", DEFAULT_RECORD_DELAY_SEC));
+        }
+
+        function ensureSessionClock() {
+            if (!sessionStartMs) resetSessionClock();
+        }
+
+        function rawSessionTimeSec() {
+            ensureSessionClock();
+            return Math.max(0, (performance.now() - sessionStartMs) / 1000);
+        }
+
+        function recordingTimeSec() {
+            return rawSessionTimeSec() - recordDelaySec;
+        }
+
+        function handleChipChange() {
+            refreshEcgConfig(true);
+            if (document.getElementById("pageRouting").classList.contains("active")) {
+                prepareRoutingPage();
+            }
+        }
+
+        function handleEcgStreamModeChange() {
+            refreshEcgConfig();
+            if (document.getElementById("pageRouting").classList.contains("active")) {
+                prepareRoutingPage();
+            }
+        }
+
+        function refreshEcgConfig(updateDeviceName) {
+            totalChannels = parseInt(document.getElementById("chipConfig").value, 10) || 2;
+            ecgStreamMode = textValue("ecgStreamMode", "SINGLE").toUpperCase();
+            if (ecgStreamMode !== "INTERLEAVED") ecgStreamMode = "SINGLE";
+            const channelCount = ecgRoutingChannelCount();
+            if (selectedEcgChannel >= channelCount) selectedEcgChannel = 0;
+            if (updateDeviceName) {
+                const devName = document.getElementById("devName");
+                if (devName) devName.value = CHIP_DEFAULT_NAMES[totalChannels] || CHIP_DEFAULT_NAMES[2];
+            }
+            const pill = document.getElementById("chipPill");
+            if (pill) {
+                const chip = totalChannels === 2 ? "ADS1292" : "ADS1298";
+                pill.textContent = ecgStreamMode === "INTERLEAVED" ? chip + " / " + totalChannels + " CH" : chip + " / 1 EP";
+            }
+        }
+
+        function ecgRoutingChannelCount() {
+            return ecgStreamMode === "INTERLEAVED" ? totalChannels : 1;
+        }
+
+        function ecgChannelLabel(index) {
+            const label = getElectroConfig().label;
+            return ecgStreamMode === "INTERLEAVED" ? label + " CH " + (index + 1) : label + " stream";
+        }
+
+        function ecgCardLabel(index) {
+            return ecgStreamMode === "INTERLEAVED" ? "HW CH " + (index + 1) : "Single " + getElectroConfig().label + " stream";
+        }
+
+        async function connectBluetooth() {
+            const status = document.getElementById("setupStatus");
+            refreshEcgConfig();
+            const deviceName = document.getElementById("devName").value.trim() || CHIP_DEFAULT_NAMES[totalChannels] || CHIP_DEFAULT_NAMES[2];
+            status.textContent = "Connecting...";
+
+            try {
+                bleDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: deviceName }],
+                    optionalServices: [BLE_SERVICE_UUID]
+                });
+                bleDevice.addEventListener("gattserverdisconnected", handleEcgDisconnected);
+                const server = await bleDevice.gatt.connect();
+                const service = await server.getPrimaryService(BLE_SERVICE_UUID);
+                bleWriteChar = await service.getCharacteristic(BLE_WRITE_UUID);
+                bleReadChar = await service.getCharacteristic(BLE_READ_UUID);
+                bleReadChar.addEventListener("characteristicvaluechanged", function(event) {
+                    handleIncomingData(event, "ecg");
+                });
+                await bleReadChar.startNotifications();
+                status.textContent = "EP connected";
+                showNotice("EP connected");
+            } catch (err) {
+                console.error(err);
+                status.textContent = "Connection failed: " + err.message;
+            }
+        }
+
+        async function connectAd5941Bluetooth() {
+            const status = document.getElementById("ad5941Status");
+            const deviceName = textValue("ad5941Name", "WeSys_5941");
+            status.textContent = "Connecting AD5941...";
+
+            try {
+                ad5941Device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: deviceName }],
+                    optionalServices: [BLE_SERVICE_UUID]
+                });
+                ad5941Device.addEventListener("gattserverdisconnected", handleAd5941Disconnected);
+                const server = await ad5941Device.gatt.connect();
+                const service = await server.getPrimaryService(BLE_SERVICE_UUID);
+                ad5941WriteChar = await service.getCharacteristic(BLE_WRITE_UUID);
+                ad5941ReadChar = await service.getCharacteristic(BLE_READ_UUID);
+                ad5941ReadChar.addEventListener("characteristicvaluechanged", function(event) {
+                    handleIncomingData(event, "ad5941");
+                });
+                await ad5941ReadChar.startNotifications();
+                status.textContent = "AD5941 connected";
+                showNotice("AD5941 connected");
+            } catch (err) {
+                console.error(err);
+                status.textContent = "AD5941 connection failed: " + err.message;
+            }
+            updateUiState();
+        }
+
+        function handleEcgDisconnected() {
+            bleDevice = null;
+            bleWriteChar = null;
+            bleReadChar = null;
+            activeTask = null;
+            if (!activeAd5941Task) appState = STATES.IDLE;
+            showNotice("EP disconnected");
+            updateUiState();
+        }
+
+        function handleAd5941Disconnected() {
+            ad5941Device = null;
+            ad5941WriteChar = null;
+            ad5941ReadChar = null;
+            activeAd5941Task = null;
+            if (!activeTask) appState = STATES.IDLE;
+            const status = document.getElementById("ad5941Status");
+            if (status) status.textContent = "AD5941 disconnected";
+            showNotice("AD5941 disconnected");
+            updateUiState();
+        }
+
+        function setPage(id) {
+            ["pageSetup", "pageRouting", "pageDashboard"].forEach(function(pageId) {
+                document.getElementById(pageId).classList.toggle("active", pageId === id);
+            });
+        }
+
+        function openRouting() {
+            setPage("pageRouting");
+            prepareRoutingPage();
+        }
+
+        async function backToSetup() {
+            await stopActiveTask(false);
+            setPage("pageSetup");
+        }
+
+        async function backToRoutingFromDashboard() {
+            await stopActiveTask(false);
+            setPage("pageRouting");
+            prepareRoutingPage();
+            updateUiState();
+        }
+
+        function prepareRoutingPage() {
+            refreshEcgConfig();
+            syncElectroModeControls();
+            const channelCount = ecgRoutingChannelCount();
+
+            rawDataBuffer = [];
+            miniCharts = [];
+            previewSampleIndex = 0;
+            previewInterleaveChannel = 0;
+            const select = document.getElementById("ecgChannelSelect");
+            select.innerHTML = "";
+            select.disabled = channelCount === 1;
+            for (let i = 0; i < channelCount; i++) {
+                rawDataBuffer.push([]);
+                const option = document.createElement("option");
+                option.value = String(i);
+                option.textContent = ecgChannelLabel(i);
+                select.appendChild(option);
+            }
+            select.value = String(selectedEcgChannel);
+
+            const grid = document.getElementById("miniGrid");
+            grid.innerHTML = "";
+            grid.classList.toggle("single", channelCount === 1);
+            for (let i = 0; i < channelCount; i++) {
+                const card = document.createElement("div");
+                card.className = "mini-card";
+                card.innerHTML = `
+                    <div class="mini-head">
+                        <span>${ecgCardLabel(i)}</span>
+                        <div class="mini-tools">
+                            <button class="mini-icon" type="button" onclick="toggleMiniFreeze(${i})" aria-label="Freeze channel ${i + 1}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round"><path d="M8 5v14"></path><path d="M16 5v14"></path></svg>
+                            </button>
+                            <button class="mini-icon" type="button" onclick="resetMiniChart(${i})" aria-label="Reset channel ${i + 1}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <canvas class="mini-canvas" id="miniCanvas_${i}"></canvas>
+                `;
+                grid.appendChild(card);
+                miniCharts.push(new MiniChart("miniCanvas_" + i, css("--blue")));
+            }
+            document.getElementById("previewBtn").textContent = "Start Preview";
+            document.getElementById("previewBtn").classList.remove("danger-bg");
+        }
+
+        async function togglePreview() {
+            if (appState === STATES.PREVIEW_RUNNING) {
+                await stopActiveTask(true);
+                document.getElementById("previewBtn").textContent = "Start Preview";
+                document.getElementById("previewBtn").classList.remove("danger-bg");
+                return;
+            }
+
+            await stopActiveTask(false);
+            resetPreviewData();
+            await startHardwareTask("PREVIEW");
+            appState = STATES.PREVIEW_RUNNING;
+            activeTask = "PREVIEW";
+            document.getElementById("previewBtn").textContent = "Stop Preview";
+            document.getElementById("previewBtn").classList.add("danger-bg");
+            startRenderLoop();
+        }
+
+        function resetPreviewData() {
+            const channelCount = ecgRoutingChannelCount();
+            rawDataBuffer = [];
+            for (let i = 0; i < channelCount; i++) {
+                rawDataBuffer.push([]);
+                if (miniCharts[i]) miniCharts[i].draw(rawDataBuffer[i]);
+            }
+            previewSampleIndex = 0;
+            previewInterleaveChannel = 0;
+        }
+
+        function toggleMiniFreeze(index) {
+            if (miniCharts[index]) miniCharts[index].frozen = !miniCharts[index].frozen;
+        }
+
+        function resetMiniChart(index) {
+            rawDataBuffer[index] = [];
+            if (miniCharts[index]) miniCharts[index].draw(rawDataBuffer[index]);
+        }
+
+        async function enterDashboard() {
+            if (appState === STATES.PREVIEW_RUNNING) {
+                await stopActiveTask(false);
+            }
+            refreshEcgConfig();
+            selectedEcgChannel = parseInt(document.getElementById("ecgChannelSelect").value, 10) || 0;
+            setPage("pageDashboard");
+            initDashboardCharts();
+            syncElectroModeControls();
+            selectedTask = "ECG";
+            startRenderLoop();
+            startMetricsLoop();
+            updateUiState();
+        }
+
+        function initDashboardCharts() {
+            if (charts.ECG) {
+                resizeCharts();
+                return;
+            }
+
+            charts.ECG = new SignalChart({
+                canvasId: "ecgCanvas",
+                rangeId: "ecgRange",
+                color: css("--blue"),
+                unit: getElectroConfig().unit,
+                data: ecgData,
+                metricUpdate: updateMetrics
+            });
+            charts.GLU = new SignalChart({
+                canvasId: "gluCanvas",
+                rangeId: "gluRange",
+                color: css("--green"),
+                unit: "uA",
+                data: glucoseData,
+                metricUpdate: updateMetrics
+            });
+            charts.RT = new SignalChart({
+                canvasId: "rtCanvas",
+                rangeId: "rtRange",
+                color: css("--red"),
+                unit: "ohm",
+                data: pulseRtData,
+                metricUpdate: updateMetrics
+            });
+            window.addEventListener("resize", resizeCharts);
+            applyRtMode();
+            updateElectroLabels();
+        }
+
+        function resizeCharts() {
+            observeChartLayout();
+            Object.values(charts).forEach(function(chart) {
+                chart.resize();
+                chart.draw();
+            });
+            miniCharts.forEach(function(chart, index) {
+                chart.resize();
+                chart.draw(rawDataBuffer[index] || []);
+            });
+        }
+
+        // A canvas backing store is sized from the element's CSS box, so every change to that
+        // box has to be re-measured. Opening the session panel shrinks the chart rows, and on a
+        // phone rotating the screen does the same; the stale store then gets stretched into the
+        // new box, which squashes every label and trace. The window resize event alone misses
+        // both, so watch the canvases themselves.
+        let chartLayoutObserver = null;
+
+        function chartLayoutStale() {
+            const all = Object.values(charts).concat(miniCharts);
+            for (let i = 0; i < all.length; i++) {
+                const chart = all[i];
+                if (!chart || !chart.canvas) continue;
+                const rect = chart.canvas.getBoundingClientRect();
+                // A hidden canvas has no box to measure, so leave its store alone.
+                if (rect.width <= 0 || rect.height <= 0) continue;
+                if (Math.abs(rect.width - chart.width) > 0.5 || Math.abs(rect.height - chart.height) > 0.5) return true;
+            }
+            return false;
+        }
+
+        function observeChartLayout() {
+            if (typeof ResizeObserver !== "function") return;
+            if (!chartLayoutObserver) {
+                chartLayoutObserver = new ResizeObserver(function() {
+                    // resizeCharts() re-measures everything, so this settles in one pass
+                    // instead of re-triggering itself.
+                    if (chartLayoutStale()) resizeCharts();
+                });
+            }
+            Object.values(charts).concat(miniCharts).forEach(function(chart) {
+                // Observing a canvas twice is a no-op, so this also picks up mini charts
+                // that were built after the first call.
+                if (chart && chart.canvas) chartLayoutObserver.observe(chart.canvas);
+            });
+        }
+
+        async function startHardwareTask(kind) {
+            const task = getTaskConfig(kind);
+            if (!task || !bleWriteChar) return false;
+            const cmd = new Uint8Array([0, 0x0A, task.channelPid, task.taskPid]);
+            await writeBle(cmd);
+            return true;
+        }
+
+        async function stopHardwareTask(kind) {
+            const task = getTaskConfig(kind);
+            if (!task || !bleWriteChar) return false;
+            const cmd = new Uint8Array([0, 0x0B, task.channelPid, task.taskPid]);
+            await writeBle(cmd);
+            return true;
+        }
+
+        async function writeBle(bytes) {
+            if (!bleWriteChar) return;
+            if (typeof bleWriteChar.writeValueWithoutResponse === "function") {
+                await bleWriteChar.writeValueWithoutResponse(bytes);
+            } else {
+                await bleWriteChar.writeValue(bytes);
+            }
+        }
+
+        async function startAd5941HardwareTask(kind) {
+            const task = TASKS[kind];
+            if (!task || !ad5941WriteChar) return false;
+            const cmd = new Uint8Array([0, 0x0A, task.channelPid, task.taskPid]);
+            await writeAd5941Ble(cmd);
+            return true;
+        }
+
+        async function stopAd5941HardwareTask(kind) {
+            const task = TASKS[kind];
+            if (!task || !ad5941WriteChar) return false;
+            const cmd = new Uint8Array([0, 0x0B, task.channelPid, task.taskPid]);
+            await writeAd5941Ble(cmd);
+            return true;
+        }
+
+        async function writeAd5941Ble(bytes) {
+            if (!ad5941WriteChar) return;
+            if (typeof ad5941WriteChar.writeValueWithoutResponse === "function") {
+                await ad5941WriteChar.writeValueWithoutResponse(bytes);
+            } else {
+                await ad5941WriteChar.writeValue(bytes);
+            }
+        }
+
+        async function toggleTask(kind) {
+            kind = resolveElectroRequest(kind);
+            selectedTask = kind;
+            if (kind === "GLU" && gluMode === GLU_MODES.RF) {
+                showNotice("GLU i-t disabled");
+                updateUiState();
+                return;
+            }
+            if (kind === "PULSE" || kind === "TEMP" || kind === "GLU") {
+                if (activeAd5941Task === kind) {
+                    await stopAd5941Task(true);
+                } else {
+                    clearTaskData(kind);
+                    await startAd5941Task(kind);
+                }
+            } else if (activeTask === kind) {
+                await stopBleTask(true);
+            } else {
+                clearTaskData(kind);
+                await startBleTask(kind);
+            }
+        }
+
+        async function startSelectedTask() {
+            if (!charts.ECG) initDashboardCharts();
+            const bgBeforeClear = capturedGlucoseValue();
+            const tempBeforeClear = Number.isFinite(capturedTemperatureC) ? capturedTemperatureC : calcTemperature();
+            await stopActiveTask(false);
+            clearAllMeasurementData();
+            if (Number.isFinite(bgBeforeClear) && !Number.isFinite(capturedGlucoseMmol)) {
+                capturedGlucoseMmol = bgBeforeClear;
+            }
+            if (Number.isFinite(tempBeforeClear) && !Number.isFinite(capturedTemperatureC)) {
+                capturedTemperatureC = tempBeforeClear;
+            }
+            updateCapturedGlucoseButton();
+            updateCapturedTempButton();
+            resetSessionClock();
+
+            const starts = [];
+            if (gluMode === GLU_MODES.RF) {
+                if (electroMode !== "ECG") {
+                    electroMode = "ECG";
+                    configureElectroMode();
+                }
+                activeRtMode = "PULSE";
+                applyRtMode();
+                if (!bleWriteChar || !ad5941WriteChar) {
+                    showNotice("Connect ECG + AD5941");
+                    return;
+                }
+                startRfCaptureState();
+                starts.push(startBleTask("ECG"));
+                starts.push(startAd5941Task("PULSE"));
+            } else {
+                if (bleWriteChar) starts.push(startBleTask(electroMode));
+                if (ad5941WriteChar) starts.push(startAd5941Task(activeRtMode));
+            }
+            if (!starts.length) {
+                showNotice("Connect EP or AD5941 first");
+                return;
+            }
+
+            await Promise.all(starts);
+            startRenderLoop();
+            startMetricsLoop();
+            showNotice(gluMode === GLU_MODES.RF ? "RF capture" : (recordDelaySec > 0 ? "Warming up " + recordDelaySec.toFixed(1) + " s" : "Recording started"));
+        }
+
+        async function startMeasurementTask(kind, clearFirst) {
+            kind = resolveElectroRequest(kind);
+            if (!charts.ECG) initDashboardCharts();
+            if (kind === "GLU" && gluMode === GLU_MODES.RF) {
+                showNotice("GLU i-t disabled");
+                updateUiState();
+                return;
+            }
+
+            if (kind === "PULSE" || kind === "TEMP") {
+                if (clearFirst) clearTaskData(kind);
+                await startAd5941Task(kind);
+            } else if (kind === "GLU") {
+                if (clearFirst) clearTaskData(kind);
+                await startAd5941Task(kind);
+            } else {
+                if (clearFirst) clearTaskData(kind);
+                await startBleTask(kind);
+            }
+        }
+
+        async function startBleTask(kind) {
+            if (!charts.ECG) initDashboardCharts();
+            ensureSessionClock();
+            if (activeTask && activeTask !== kind) {
+                await stopBleTask(false);
+            }
+
+            const ok = await startHardwareTask(kind);
+            if (!ok) {
+                showNotice("EP not connected");
+                return false;
+            }
+
+            activeTask = kind;
+            if (kind === "EMG") emgBleClock.lastPacketMs = NaN;
+            selectedTask = kind;
+            appState = kind + "_RUNNING";
+            getChartForKind(kind).live = true;
+            showNotice(taskLabel(kind) + " started");
+            updateUiState();
+            startRenderLoop();
+            return true;
+        }
+
+        async function startAd5941Task(kind) {
+            if (!charts.ECG) initDashboardCharts();
+            ensureSessionClock();
+            if (!ad5941WriteChar) {
+                showNotice("AD5941 not connected");
+                return false;
+            }
+            if (activeAd5941Task && activeAd5941Task !== kind) {
+                await stopAd5941Task(false);
+            }
+
+            try {
+                const ok = await startAd5941HardwareTask(kind);
+                if (!ok) {
+                    showNotice("AD5941 not connected");
+                    return false;
+                }
+                activeAd5941Task = kind;
+                selectedTask = kind;
+                if (!activeTask) appState = kind + "_RUNNING";
+                getChartForKind(kind).live = true;
+                updateUiState();
+                startRenderLoop();
+                showNotice(taskLabel(kind) + " started");
+                return true;
+            } catch (err) {
+                const status = document.getElementById("ad5941Status");
+                if (status) status.textContent = "AD5941 error: " + err.message;
+                showNotice("AD5941 start failed");
+                updateUiState();
+                return false;
+            }
+        }
+
+        async function stopActiveTask(show) {
+            if (!activeTask && !activeAd5941Task) return;
+            await stopBleTask(false);
+            await stopAd5941Task(false);
+            appState = STATES.IDLE;
+            if (charts.ECG) {
+                Object.values(charts).forEach(function(chart) {
+                    chart.live = false;
+                });
+            }
+            updateUiState();
+            if (show) showNotice("Recording paused");
+        }
+
+        async function pauseSession() {
+            if (canCompleteRfCapture()) {
+                completeRfCaptureSoon();
+                return;
+            }
+            await stopActiveTask(true);
+        }
+
+        async function clearCurrentSession() {
+            if (clearingSession) return;
+            clearingSession = true;
+            const clearBtn = document.getElementById("globalClearBtn");
+            const playBtn = document.getElementById("globalPlayBtn");
+            if (clearBtn) clearBtn.disabled = true;
+            if (playBtn) playBtn.disabled = true;
+            try {
+                await stopActiveTask(false);
+                // The temperature curve and this tab's CAL coefficient are setup,
+                // not samples from the run being cleared. Keep both for the next run.
+                const savedTempCurve = temperatureCalibration;
+                const savedTempMode = temperatureCalibrationMode;
+                const savedTempCal = sessionTempCalibration;
+                const savedCalibrationFileName = calibrationFileName;
+                resetPreviewData();
+                clearAllMeasurementData();
+                temperatureCalibration = savedTempCurve;
+                temperatureCalibrationMode = savedTempMode;
+                sessionTempCalibration = savedTempCal;
+                calibrationFileName = savedCalibrationFileName;
+                // The imported model is per-run setup too, but clearing it is what the
+                // user asked for: the Model field goes back to "Import".
+                clearPersonalModel();
+                capturedGlucoseMmol = NaN;
+                capturedTemperatureC = NaN;
+                updateCapturedGlucoseButton();
+                updateCapturedTempButton();
+                updateMetrics();
+                updateUiState();
+                const previewBtn = document.getElementById("previewBtn");
+                if (previewBtn) {
+                    previewBtn.textContent = "Start Preview";
+                    previewBtn.classList.remove("danger-bg");
+                }
+                showNotice("Data + model cleared; Temp calibration kept");
+            } catch (err) {
+                console.error("Could not stop measurement before clearing", err);
+                showNotice("Stop failed; data not cleared");
+            } finally {
+                clearingSession = false;
+                if (clearBtn) clearBtn.disabled = false;
+                if (playBtn) playBtn.disabled = false;
+            }
+        }
+
+        async function stopAndSaveSession() {
+            const wasRunning = Boolean(activeTask || activeAd5941Task);
+            await stopActiveTask(true);
+            if (wasRunning && hasDashboardData()) {
+                saveAllData();
+                sessionHasData = false;
+            }
+        }
+
+        async function stopBleTask(show) {
+            if (!activeTask) return;
+            const stopping = activeTask;
+            await stopHardwareTask(stopping);
+            if (stopping === "EMG") emgBleClock.lastPacketMs = NaN;
+            activeTask = null;
+            appState = activeAd5941Task ? activeAd5941Task + "_RUNNING" : STATES.IDLE;
+            if (charts.ECG) {
+                if (charts.ECG) charts.ECG.live = false;
+            }
+            updateUiState();
+            if (show) showNotice(taskLabel(stopping) + " paused");
+        }
+
+        async function stopAd5941Task(show) {
+            if (!activeAd5941Task) return;
+            const stopping = activeAd5941Task;
+            try {
+                await stopAd5941HardwareTask(stopping);
+            } catch (err) {
+                const status = document.getElementById("ad5941Status");
+                if (status) status.textContent = "AD5941 error: " + err.message;
+            }
+            activeAd5941Task = null;
+            if (!activeTask) appState = STATES.IDLE;
+            const chart = getChartForKind(stopping);
+            if (chart) {
+                const wasLive = chart.live;
+                chart.live = false;
+                // On pause, reveal the buffered tail immediately.
+                if (wasLive && !chart.showAll) chart.setWindowStart(chart.defaultStart());
+            }
+            updateUiState();
+            if (show) showNotice(taskLabel(stopping) + " paused");
+        }
+
+        async function restartTask(kind) {
+            kind = resolveElectroRequest(kind);
+            selectedTask = kind;
+            if (kind === "GLU" && gluMode === GLU_MODES.RF) {
+                showNotice("GLU i-t disabled");
+                updateUiState();
+                return;
+            }
+            if (kind === "PULSE" || kind === "TEMP" || kind === "GLU") {
+                if (activeAd5941Task) await stopAd5941Task(false);
+            } else if (activeTask) {
+                await stopBleTask(false);
+            }
+            clearTaskData(kind);
+            getChartForKind(kind).showAll = false;
+            getChartForKind(kind).draw();
+            await startMeasurementTask(kind, false);
+        }
+
+        function clearTaskData(kind) {
+            if (isMeasurementElectroKind(kind)) {
+                ecgData = [];
+                ecgSampleIndex = 0;
+                emgBleClock = { packets: 0, samples: 0, intervalSamples: 0, elapsedMs: 0, lastPacketMs: NaN };
+                ecgInterleaveChannel = 0;
+                if (electroFilter) electroFilter.reset();
+                if (baselineCorrector) baselineCorrector.reset();
+                if (charts.ECG) charts.ECG.setData(ecgData);
+            } else if (kind === "GLU") {
+                glucoseData = [];
+                glucoseSampleIndex = 0;
+                if (charts.GLU) charts.GLU.setData(glucoseData);
+            } else if (kind === "TEMP") {
+                tempRtData = [];
+                tempSampleIndex = 0;
+                tempRtBaselineResistance = NaN;
+                if (activeRtMode === "TEMP" && charts.RT) charts.RT.setData(tempRtData);
+            } else if (kind === "PULSE") {
+                pulseRtData = [];
+                pulseSampleIndex = 0;
+                if (activeRtMode === "PULSE" && charts.RT) charts.RT.setData(pulseRtData);
+            }
+            updateMetrics();
+        }
+
+        function clearAllMeasurementData() {
+            clearTaskData("ECG");
+            clearTaskData("GLU");
+            clearTaskData("TEMP");
+            clearTaskData("PULSE");
+            resetRfPredictionState();
+            sessionHasData = false;
+            sessionStartMs = 0;
+            recordDelaySec = Math.max(0, numericValue("recordDelay", DEFAULT_RECORD_DELAY_SEC));
+            Object.values(charts).forEach(function(chart) {
+                chart.showAll = false;
+                chart.live = false;
+            });
+            updateMetrics();
+        }
+
+        function hasDashboardData() {
+            return ecgData.length || glucoseData.length || tempRtData.length || pulseRtData.length;
+        }
+
+        async function switchRtMode() {
+            if (gluMode === GLU_MODES.RF) {
+                activeRtMode = "PULSE";
+                applyRtMode();
+                showNotice("Pulse locked in RF");
+                updateUiState();
+                return;
+            }
+            if (activeAd5941Task === "TEMP" || activeAd5941Task === "PULSE") {
+                await stopAd5941Task(true);
+            }
+            activeRtMode = activeRtMode === "PULSE" ? "TEMP" : "PULSE";
+            selectedTask = activeRtMode;
+            applyRtMode();
+            updateUiState();
+            showNotice(activeRtMode === "PULSE" ? "Pulse R-t" : "Temp R-t");
+        }
+
+        function applyRtMode() {
+            if (!charts.RT) return;
+            const isPulse = activeRtMode === "PULSE";
+            const color = css(isPulse ? "--red" : "--amber");
+            document.getElementById("rtTitle").textContent = isPulse ? "Pulse" : "Temp R-t";
+            document.getElementById("rtName").style.color = color;
+            charts.RT.color = color;
+            charts.RT.unit = "ohm";
+            charts.RT.setData(isPulse ? pulseRtData : tempRtData);
+        }
+
+        function toggleChartAll(kind) {
+            const chart = getChartForKind(kind);
+            if (!chart) return;
+            chart.toggleShowAll();
+            updateUiState();
+            updateMetrics();
+        }
+
+        function getChartForKind(kind) {
+            if (isElectroKind(kind)) return charts.ECG;
+            if (kind === "GLU") return charts.GLU;
+            return charts.RT;
+        }
+
+        function taskLabel(kind) {
+            if (isMeasurementElectroKind(kind)) return getElectroConfig(kind).label;
+            if (kind === "GLU") return gluMode === GLU_MODES.RF ? "Glu RF" : "Glu i-t";
+            if (kind === "TEMP") return "Temp R-t";
+            if (kind === "PULSE") return "Pulse";
+            if (kind === "PREVIEW") return "Preview";
+            return "Task";
+        }
+
+        function updateUiState() {
+            setButtonState("ecgPlayBtn", isMeasurementElectroKind(activeTask), "playing");
+            setButtonState("gluPlayBtn", activeAd5941Task === "GLU", "playing");
+            setButtonState("rtPlayBtn", activeAd5941Task === activeRtMode, "playing");
+            setButtonState("ecgAllBtn", charts.ECG && charts.ECG.showAll, "active");
+            setButtonState("gluAllBtn", charts.GLU && charts.GLU.showAll, "active");
+            setButtonState("rtAllBtn", charts.RT && charts.RT.showAll, "active");
+            setButtonState("baselineBtn", baselineEnabled, "active");
+            setButtonState("filterBtn", electroFilterEnabled, "active");
+            updateGluModeUi();
+            updateSessionChip();
+            updateCapturedGlucoseButton();
+            updateCapturedTempButton();
+            updateModelButton();
+        }
+
+        function setButtonState(id, active, className) {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle(className, Boolean(active));
+        }
+
+        function setDisabled(id, disabled) {
+            const el = document.getElementById(id);
+            if (el) el.disabled = Boolean(disabled);
+        }
+
+        function handleIncomingData(event, source) {
+            const view = event.target.value;
+            if (!view || view.byteLength < 8) return;
+            const opcode = view.getUint16(0, false);
+            if (opcode !== 0x000C) return;
+
+            const channelPid = view.getUint8(2);
+            const taskPid = view.getUint8(3);
+            let offset = 8;
+            const floats = [];
+            if (source === "ecg" && (taskPid === TASKS.EMG.taskPid || taskPid === TASKS.EEG.taskPid)) {
+                // EP EMG/EEG payload is signed int16 in µV; normalize to V for
+                // scaledElectroValue(), which converts V to mV for chart and export.
+                while (offset + 2 <= view.byteLength) {
+                    floats.push(view.getInt16(offset, true) / 1000000);
+                    offset += 2;
+                }
+            } else {
+                // EP ECG and all AD5941 tasks use little-endian float32.
+                while (offset + 4 <= view.byteLength) {
+                    floats.push(view.getFloat32(offset, true));
+                    offset += 4;
+                }
+            }
+            if (!floats.length) return;
+
+            const previewTask = getTaskConfig("PREVIEW");
+            const electroTask = isMeasurementElectroKind(activeTask) ? getTaskConfig(activeTask) : null;
+
+            if (source === "ecg" && appState === STATES.PREVIEW_RUNNING && matchesElectroPacket(channelPid, taskPid, previewTask)) {
+                ingestPreviewFloats(floats);
+                return;
+            }
+
+            if (source === "ecg" && isMeasurementElectroKind(activeTask) && matchesElectroPacket(channelPid, taskPid, electroTask)) {
+                if (activeTask === "EMG") noteEmgBlePacket(emgSelectedSampleCount(floats.length));
+                ingestEcgFloats(floats);
+            } else if (source === "ad5941" && activeAd5941Task === "GLU" && channelPid === TASKS.GLU.channelPid && taskPid === TASKS.GLU.taskPid) {
+                ingestSingleChannelFloats(floats, "GLU");
+            } else if (source === "ad5941" && (activeAd5941Task === "TEMP" || activeAd5941Task === "PULSE") && channelPid === TASKS.TEMP.channelPid && taskPid === TASKS.TEMP.taskPid) {
+                ingestSingleChannelFloats(floats, activeAd5941Task);
+            }
+        }
+
+        function emgSelectedSampleCount(payloadCount) {
+            if (ecgStreamMode === "SINGLE") return payloadCount;
+            let count = 0;
+            for (let i = 0; i < payloadCount; i++) {
+                if ((ecgInterleaveChannel + i) % totalChannels === selectedEcgChannel) count++;
+            }
+            return count;
+        }
+
+        function noteEmgBlePacket(sampleCount) {
+            const nowMs = performance.now();
+            // Exclude the first packet of each continuous run: only later packets
+            // can be timed against a preceding BLE notification.
+            if (Number.isFinite(emgBleClock.lastPacketMs)) {
+                const intervalMs = nowMs - emgBleClock.lastPacketMs;
+                if (intervalMs > 0) {
+                    emgBleClock.elapsedMs += intervalMs;
+                    emgBleClock.intervalSamples += sampleCount;
+                }
+            }
+            emgBleClock.lastPacketMs = nowMs;
+            emgBleClock.packets++;
+            emgBleClock.samples += sampleCount;
+        }
+
+        function ingestPreviewFloats(floats) {
+            const rate = getTaskConfig("PREVIEW").samplingRate || getElectroSamplingRate();
+            if (ecgStreamMode === "SINGLE") {
+                if (!rawDataBuffer[0]) rawDataBuffer[0] = [];
+                for (let i = 0; i < floats.length; i++) {
+                    const t = previewSampleIndex / rate;
+                    const value = scaledElectroValue(floats[i]);
+                    if (Number.isFinite(value)) {
+                        rawDataBuffer[0].push([t, value]);
+                    }
+                    previewSampleIndex++;
+                }
+                trimPreviewBuffer(rawDataBuffer[0], rate);
+                return;
+            }
+
+            for (let i = 0; i < floats.length; i++) {
+                const ch = previewInterleaveChannel;
+                const t = previewSampleIndex / rate;
+                if (!rawDataBuffer[ch]) rawDataBuffer[ch] = [];
+                const value = scaledElectroValue(floats[i]);
+                if (Number.isFinite(value)) {
+                    rawDataBuffer[ch].push([t, value]);
+                }
+                previewInterleaveChannel = (previewInterleaveChannel + 1) % totalChannels;
+                if (previewInterleaveChannel === 0) previewSampleIndex++;
+            }
+            rawDataBuffer.forEach(function(buffer) {
+                trimPreviewBuffer(buffer, rate);
+            });
+        }
+
+        function ingestEcgFloats(floats) {
+            const canRecord = recordingTimeSec() >= 0;
+            if (ecgStreamMode === "SINGLE") {
+                for (let i = 0; i < floats.length; i++) {
+                    recordEcgValue(floats[i], canRecord);
+                }
+                return;
+            }
+
+            for (let i = 0; i < floats.length; i++) {
+                const ch = ecgInterleaveChannel;
+                if (ch === selectedEcgChannel) recordEcgValue(floats[i], canRecord);
+                ecgInterleaveChannel = (ecgInterleaveChannel + 1) % totalChannels;
+            }
+        }
+
+        function recordEcgValue(rawValue, canRecord) {
+            let value = scaledElectroValue(rawValue);
+            if (!Number.isFinite(value)) {
+                resetElectroProcessing();
+                return;
+            }
+            if (electroFilter) value = electroFilter.process(value);
+            if (!Number.isFinite(value)) {
+                resetElectroProcessing();
+                return;
+            }
+            if (baselineCorrector) value = baselineCorrector.process(value);
+            if (!Number.isFinite(value)) {
+                resetElectroProcessing();
+                return;
+            }
+            if (!canRecord) return;
+            const rate = getElectroSamplingRate(isMeasurementElectroKind(activeTask) ? activeTask : electroMode);
+            const t = ecgSampleIndex / rate;
+            if (!Number.isFinite(t)) return;
+            ecgData.push([t, value]);
+            sessionHasData = true;
+            ecgSampleIndex++;
+        }
+
+        function ingestSingleChannelFloats(floats, kind) {
+            // Keep the temperature startup samples for the chart and export. Only the
+            // temperature calculation excludes the initial current transient.
+            if (kind !== "TEMP" && recordingTimeSec() < 0) return;
+            const task = TASKS[kind];
+            for (let i = 0; i < floats.length; i++) {
+                // One sample counter per channel: the curve advances a fixed step per
+                // sample and the axis reads the task's own sampling rate.
+                if (kind === "GLU") {
+                    glucoseData.push([glucoseSampleIndex / task.samplingRate, floats[i] * GLU_SCALE]);
+                    glucoseSampleIndex++;
+                } else if (kind === "TEMP") {
+                    tempRtData.push([tempSampleIndex / task.samplingRate, floats[i] * RT_SCALE]);
+                    tempSampleIndex++;
+                } else if (kind === "PULSE") {
+                    pulseRtData.push([pulseSampleIndex / task.samplingRate, floats[i] * RT_SCALE]);
+                    pulseSampleIndex++;
+                } else {
+                    return;
+                }
+                sessionHasData = true;
+            }
+        }
+
+        function pickCalibrationFile() {
+            document.getElementById("calFile").click();
+        }
+
+        function handleCalibrationFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const parsed = parseCalibrationText(e.target.result);
+                if (parsed.glucose.length >= 2) glucoseCalibration = parsed.glucose;
+                if (parsed.temp.length >= 2) {
+                    temperatureCalibration = parsed.temp;
+                    temperatureCalibrationMode = parsed.tempMode || inferTemperatureCalibrationMode(parsed.temp);
+                    tempRtBaselineResistance = NaN;
+                }
+                calibrationFileName = file.name;
+                updateMetrics();
+                showNotice("Calibration loaded");
+            };
+            reader.readAsText(file);
+            event.target.value = "";
+        }
+
+        function parseCalibrationText(text) {
+            const result = { glucose: [], temp: [], tempMode: null };
+            let columns = null;
+            text.split(/\r?\n/).forEach(function(line) {
+                const parts = splitLine(line);
+                if (parts.length < 2) return;
+                const detected = detectCalibrationColumns(parts);
+                if (detected) {
+                    columns = detected;
+                    if (detected.tempMode) result.tempMode = detected.tempMode;
+                    return;
+                }
+                if (columns) {
+                    pushPair(result.glucose, parts, columns.glucose[0], columns.glucose[1]);
+                    pushPair(result.temp, parts, columns.temp[0], columns.temp[1]);
+                    return;
+                }
+                pushDefaultCalibrationPairs(result, parts);
+            });
+            result.glucose.sort((a, b) => a[0] - b[0]);
+            result.temp.sort((a, b) => a[0] - b[0]);
+            return result;
+        }
+
+        function splitLine(line) {
+            const clean = String(line).replace(/^\uFEFF/, "").trim();
+            if (!clean || clean[0] === "#") return [];
+            if (line.indexOf("\t") >= 0) return line.split("\t").map(cleanCell);
+            if (line.indexOf(",") >= 0 || line.indexOf(";") >= 0) return line.split(/[;,]/).map(cleanCell);
+            return clean.split(/\s+/).map(cleanCell);
+        }
+
+        function cleanCell(value) {
+            return String(value).trim().replace(/^"(.*)"$/, "$1").replace(/^\uFEFF/, "");
+        }
+
+        function pushPair(target, parts, inputIndex, outputIndex) {
+            if (!Array.isArray(inputIndex)) {
+                if (inputIndex < 0 || outputIndex < 0 || parts.length <= Math.max(inputIndex, outputIndex)) return;
+                const x = parseFloat(parts[inputIndex]);
+                const y = parseFloat(parts[outputIndex]);
+                if (Number.isFinite(x) && Number.isFinite(y)) target.push([x, y]);
+                return;
+            }
+        }
+
+        function pushDefaultCalibrationPairs(result, parts) {
+            if (parts.length >= 2) {
+                const a = parseFloat(parts[0]);
+                const b = parseFloat(parts[1]);
+                if (Number.isFinite(a) && Number.isFinite(b)) {
+                    const tempPair = defaultTemperatureCalibrationPair(a, b);
+                    if (tempPair) {
+                        result.temp.push(tempPair);
+                        return;
+                    }
+                    const pair = defaultGlucoseCalibrationPair(a, b);
+                    result.glucose.push(pair);
+                }
+            }
+            if (parts.length >= 4) {
+                const resistance = parseFloat(parts[2]);
+                const temperature = parseFloat(parts[3]);
+                if (Number.isFinite(resistance) && Number.isFinite(temperature)) {
+                    result.temp.push([resistance, temperature]);
+                }
+            }
+        }
+
+        function defaultTemperatureCalibrationPair(first, second) {
+            const firstLooksTemperature = first >= 20 && first <= 60 && Math.abs(second) <= 300;
+            const secondLooksTemperature = second >= 20 && second <= 60 && Math.abs(first) <= 300;
+            if (firstLooksTemperature && !secondLooksTemperature) return [second, first];
+            if (secondLooksTemperature && !firstLooksTemperature) return [first, second];
+            return null;
+        }
+
+        function defaultGlucoseCalibrationPair(first, second) {
+            const firstLooksConcentration = Math.abs(first) <= 100 && Math.abs(second) > 100;
+            const secondLooksConcentration = Math.abs(second) <= 100 && Math.abs(first) > 100;
+            if (secondLooksConcentration && !firstLooksConcentration) return [first, second];
+            return [second, first];
+        }
+
+        function detectCalibrationColumns(parts) {
+            const names = parts.map(normalizeColumnName);
+            const current = findColumn(names, ["current", "curr", "电流", "ua", "µa", "μa", "na"]);
+            const glucose = findColumn(names, ["glucose", "glu", "葡萄糖", "血糖", "浓度", "concentration", "mmol"]);
+            const resistance = findColumn(names, ["resistance", "res", "ohm", "deltar", "deltaresistance", "resistancechange", "dr", "δr", "电阻", "电阻变化", "电阻增量", "升高电阻"]);
+            const temperature = findColumn(names, ["temperature", "temp", "deltat", "temperaturechange", "temprise", "dt", "δt", "温度", "体温", "温升", "升温"]);
+            const tempMode = resistance >= 0 && /^(delta|δr|dr(?:$|ohm)|resistancechange|changeinresistance|电阻变化|电阻增量|升高电阻)/.test(names[resistance])
+                ? "delta" : "absolute";
+
+            if (current >= 0 && glucose >= 0 && resistance >= 0 && temperature >= 0) {
+                return {
+                    glucose: [current, glucose],
+                    temp: [resistance, temperature],
+                    tempMode: tempMode
+                };
+            }
+            if (current >= 0 && glucose >= 0) {
+                return {
+                    glucose: [current, glucose],
+                    temp: [-1, -1]
+                };
+            }
+            if (resistance >= 0 && temperature >= 0) {
+                return {
+                    glucose: [-1, -1],
+                    temp: [resistance, temperature],
+                    tempMode: tempMode
+                };
+            }
+            return null;
+        }
+
+        function normalizeColumnName(value) {
+            return String(value).toLowerCase().replace(/[\s_()[\]{}\-\/\\]+/g, "");
+        }
+
+        function findColumn(names, keywords) {
+            for (let i = 0; i < names.length; i++) {
+                const name = names[i];
+                if (!name) continue;
+                for (let k = 0; k < keywords.length; k++) {
+                    if (name.indexOf(keywords[k]) >= 0) return i;
+                }
+            }
+            return -1;
+        }
+
+        function startMetricsLoop() {
+            if (metricsInterval) return;
+            metricsInterval = setInterval(updateMetrics, 1000);
+            updateMetrics();
+        }
+
+        function updateMetrics() {
+            const hr = electroMode === "ECG" ? calcHR(ecgData, charts.ECG ? charts.ECG.metricEnd() : lastTime(ecgData)) : NaN;
+            document.getElementById("hrValue").textContent = Number.isFinite(hr) ? String(hr) : "--";
+
+            updateRfPredictionState();
+            autoPredictRfIfReady();
+            const gluEl = document.getElementById("gluValue");
+            const gluUnitEl = document.getElementById("gluUnit");
+            if (gluMode === GLU_MODES.RF) {
+                if (rfState === "collecting") {
+                    gluEl.textContent = Math.floor(rfElapsedSec()) + "/" + RF_CAPTURE_TARGET_SEC + "s";
+                    gluUnitEl.textContent = "";
+                } else if (rfState === "predicting") {
+                    gluEl.textContent = "...";
+                    gluUnitEl.textContent = "";
+                } else if (Number.isFinite(rfPredictionValue)) {
+                    gluEl.textContent = rfPredictionValue.toFixed(1);
+                    gluUnitEl.textContent = "mmol/L";
+                } else if (rfState === "no_model") {
+                    gluEl.textContent = rfPredictionError || "No Model";
+                    gluUnitEl.textContent = "";
+                } else {
+                    gluEl.textContent = "--";
+                    gluUnitEl.textContent = "mmol/L";
+                }
+            } else {
+                const glu = calcGlucose(charts.GLU ? charts.GLU.metricEnd() : lastTime(glucoseData));
+                gluEl.textContent = Number.isFinite(glu) ? glu.toFixed(2) : "--";
+                gluUnitEl.textContent = "mmol/L";
+            }
+
+            const temp = calcTemperature();
+            document.getElementById("tempValue").textContent = Number.isFinite(temp) ? temp.toFixed(1) : "--";
+            const calChip = document.getElementById("tempCalChip");
+            if (calChip) calChip.classList.toggle("hidden", !sessionTempCalibration);
+            refreshTempCalibrationDialog();
+        }
+
+        function autoPredictRfIfReady() {
+            if (gluMode !== GLU_MODES.RF) return;
+            if (rfState === "collecting" || rfState === "predicting") return;
+            if (!hasRfSignalData()) return;
+            if (!personalModel) {
+                if (rfState === "idle") {
+                    rfState = "no_model";
+                    rfPredictionError = "No Model";
+                }
+                return;
+            }
+            if (Number.isFinite(rfPredictionValue)) return;
+            rfPredictionError = "";
+            try {
+                rfPredictionValue = predictGlucoseFromModel();
+            } catch (err) {
+                console.error(err);
+                rfPredictionValue = NaN;
+                rfPredictionError = "Predict error";
+            }
+            rfState = Number.isFinite(rfPredictionValue) ? "done" : "no_model";
+        }
+
+        function hasRfSignalData() {
+            return rfElapsedSec() >= RF_CAPTURE_TARGET_SEC
+                && ecgData.filter(validPoint).length >= 80
+                && pulseRtData.filter(validPoint).length >= 40;
+        }
+
+        function updateRfPredictionState() {
+            if (gluMode !== GLU_MODES.RF || rfState !== "collecting") return;
+            if (rfElapsedSec() >= RF_CAPTURE_TARGET_SEC) completeRfCaptureSoon();
+        }
+
+        function calcHR(data, endTime) {
+            if (!data.length || !Number.isFinite(endTime) || endTime < 10) return NaN;
+            const windowData = data.filter(pt => pt[0] >= endTime - 10 && pt[0] <= endTime);
+            if (windowData.length < 20) return NaN;
+            let min = Infinity;
+            let max = -Infinity;
+            windowData.forEach(function(pt) {
+                if (pt[1] < min) min = pt[1];
+                if (pt[1] > max) max = pt[1];
+            });
+            const range = max - min;
+            if (!Number.isFinite(range) || range <= 0) return NaN;
+            const threshold = min + range * 0.72;
+            const peaks = [];
+            let lastPeak = -Infinity;
+            for (let i = 1; i < windowData.length - 1; i++) {
+                const prev = windowData[i - 1][1];
+                const cur = windowData[i][1];
+                const next = windowData[i + 1][1];
+                const time = windowData[i][0];
+                if (cur > threshold && cur > prev && cur >= next && time - lastPeak > 0.3) {
+                    peaks.push(time);
+                    lastPeak = time;
+                }
+            }
+            if (peaks.length < 2) return NaN;
+            const avg = (peaks[peaks.length - 1] - peaks[0]) / (peaks.length - 1);
+            return avg > 0 ? Math.round(60 / avg) : NaN;
+        }
+
+        function calcGlucose(endTime) {
+            if (!glucoseData.length || !Number.isFinite(endTime) || endTime < 60) return NaN;
+            const avg = averageInWindow(glucoseData, Math.max(55, endTime - 5), endTime);
+            if (!Number.isFinite(avg)) return NaN;
+            return interpolate(glucoseCalibration, avg);
+        }
+
+        function calcTemperature() {
+            const sensorTemp = calcSensorTemperature();
+            if (Number.isFinite(sensorTemp)) return sensorTemp;
+            if (activeRtMode === "TEMP" || activeAd5941Task === "TEMP" || tempRtData.length) return NaN;
+            return capturedTemperatureC;
+        }
+
+        function calcSensorTemperature() {
+            if (!tempRtData.length) return NaN;
+            const baseline = tempBaselineResistance();
+            if (!Number.isFinite(baseline)) return NaN;
+            const avg = currentTempResistance();
+            if (!Number.isFinite(avg)) return NaN;
+            const deltaR = avg - baseline;
+            // The session calibration is a plain linear scale, so it keeps working past the
+            // last imported calibration point instead of going blank above 40 C.
+            if (sessionTempCalibration) {
+                return roomTemperatureC() + deltaR * sessionTempCalibration.dTPerOhm;
+            }
+            const rise = interpolateWithinRange(relativeTemperatureCalibration(), deltaR);
+            return Number.isFinite(rise) ? roomTemperatureC() + rise : NaN;
+        }
+
+        function currentTempResistance() {
+            if (!tempRtData.length) return NaN;
+            const end = lastTime(tempRtData);
+            const baselineEnd = TEMP_CALC_START_SEC + TEMP_BASELINE_WINDOW_SEC;
+            const winStart = Math.max(baselineEnd, end - TEMP_AVG_WINDOW_SEC);
+            return averageInWindow(tempRtData, winStart, end);
+        }
+
+        function tempBaselineResistance() {
+            if (Number.isFinite(tempRtBaselineResistance)) return tempRtBaselineResistance;
+            if (!tempRtData.length) return NaN;
+            const end = lastTime(tempRtData);
+            // The baseline is 3-6 s after task start, even if startup delayed
+            // the first available sample.
+            const baseStart = TEMP_CALC_START_SEC;
+            const baseEnd = baseStart + TEMP_BASELINE_WINDOW_SEC;
+            if (!Number.isFinite(end) || end < baseEnd) return NaN;
+            const avg = averageInWindow(tempRtData, baseStart, baseEnd, true);
+            if (Number.isFinite(avg)) {
+                tempRtBaselineResistance = avg;
+            }
+            return tempRtBaselineResistance;
+        }
+
+        function tempCalibrationState() {
+            const baseline = tempBaselineResistance();
+            const avg = currentTempResistance();
+            const hasData = Number.isFinite(baseline) && Number.isFinite(avg);
+            return {
+                baseline: baseline,
+                avg: avg,
+                deltaR: hasData ? avg - baseline : NaN,
+                hasData: hasData
+            };
+        }
+
+        function tempCalibrationDrifts() {
+            if (!tempRtData.length) return false;
+            const end = lastTime(tempRtData);
+            const recent = averageInWindow(tempRtData, end - TEMP_AVG_WINDOW_SEC, end);
+            const previous = averageInWindow(tempRtData, end - 2 * TEMP_AVG_WINDOW_SEC, end - TEMP_AVG_WINDOW_SEC);
+            if (!Number.isFinite(recent) || !Number.isFinite(previous)) return false;
+            return Math.abs(recent - previous) > TEMP_CAL_DRIFT_LIMIT;
+        }
+
+        function tempCalibrationDialogOpen() {
+            const overlay = document.getElementById("tempCalOverlay");
+            return !!overlay && !overlay.classList.contains("hidden");
+        }
+
+        function handleTempMetricKey(event) {
+            if (event.key === "Enter" || event.key === " " || event.key === "Spacebar") {
+                event.preventDefault();
+                openTempCalibration();
+            }
+        }
+
+        function handleTempCalOverlayClick(event) {
+            if (event.target === event.currentTarget) closeTempCalibration();
+        }
+
+        function openTempCalibration() {
+            const overlay = document.getElementById("tempCalOverlay");
+            if (!overlay) return;
+            const input = document.getElementById("tempRefInput");
+            // Prefill with whatever the reference-reading field last held, else the live reading.
+            if (input && !input.value.trim()) {
+                const current = calcTemperature();
+                input.value = Number.isFinite(current) ? current.toFixed(1) : "";
+            }
+            overlay.classList.remove("hidden");
+            refreshTempCalibrationDialog();
+            if (input) input.focus();
+        }
+
+        function closeTempCalibration() {
+            const overlay = document.getElementById("tempCalOverlay");
+            if (overlay) overlay.classList.add("hidden");
+        }
+
+        // Called once a second from updateMetrics(); cheap no-op while the dialog is closed.
+        function refreshTempCalibrationDialog() {
+            if (!tempCalibrationDialogOpen()) return;
+            const state = tempCalibrationState();
+            const readout = document.getElementById("tempCalReadout");
+            if (readout) {
+                readout.textContent = state.hasData
+                    ? "Room " + roomTemperatureC().toFixed(1) + " °C  ·  R0 " + state.baseline.toFixed(2) + " Ω\n"
+                        + "Now R " + state.avg.toFixed(2) + " Ω  ·  ΔR " + state.deltaR.toFixed(2) + " Ω"
+                    : "No Temp R-t data yet.\nStart Temp R-t at room temperature, then move the sensor onto the reference site.";
+            }
+            const hint = document.getElementById("tempCalHint");
+            if (hint) hint.textContent = tempCalibrationHint(state);
+            const applyBtn = document.getElementById("tempCalApplyBtn");
+            if (applyBtn) applyBtn.disabled = !state.hasData;
+            const clearBtn = document.getElementById("tempCalClearBtn");
+            if (clearBtn) clearBtn.disabled = !sessionTempCalibration;
+        }
+
+        function tempCalibrationHint(state) {
+            if (!state.hasData) return "Waiting for Temp R-t data.";
+            if (Math.abs(state.deltaR) < MIN_TEMP_CAL_DELTA_R) {
+                return "ΔR too small - the sensor is still at room temperature. Warm it up first.";
+            }
+            if (tempCalibrationDrifts()) {
+                return "Reading is still drifting - let it settle before applying.";
+            }
+            if (sessionTempCalibration) return "This replaces the current session calibration.";
+            return "Holds until the page is reloaded; a refresh clears it.";
+        }
+
+        function applyTempCalibration() {
+            const input = document.getElementById("tempRefInput");
+            const ref = input ? parseFloat(input.value) : NaN;
+            if (!Number.isFinite(ref) || ref < 10 || ref > 60) {
+                showNotice("Ref temp 10-60 °C");
+                return;
+            }
+            const state = tempCalibrationState();
+            if (!state.hasData) {
+                showNotice("No temp data");
+                return;
+            }
+            if (Math.abs(state.deltaR) < MIN_TEMP_CAL_DELTA_R) {
+                showNotice("ΔR too small");
+                return;
+            }
+            const room = roomTemperatureC();
+            if (Math.abs(ref - room) < MIN_TEMP_CAL_DELTA_T) {
+                showNotice("Ref too close to room temp");
+                return;
+            }
+            // Two anchors -> one slope: room baseline (ΔR = 0) and this reference reading.
+            // Plain linear scale, so it extrapolates past the imported curve's 40 °C end.
+            sessionTempCalibration = {
+                dTPerOhm: (ref - room) / state.deltaR,
+                refTempC: ref,
+                roomTempC: room,
+                refDeltaR: state.deltaR,
+                baselineResistance: state.baseline
+            };
+            closeTempCalibration();
+            updateMetrics();
+            showNotice("Temp calibrated");
+        }
+
+        function clearSessionTempCalibration() {
+            sessionTempCalibration = null;
+            closeTempCalibration();
+            updateMetrics();
+            showNotice("Temp calibration cleared");
+        }
+
+        function temperatureCalibrationUsesDeltaResistance() {
+            return temperatureCalibrationMode === "delta";
+        }
+
+        function inferTemperatureCalibrationMode(calibration) {
+            const points = validCalibrationPoints(calibration);
+            return points.length >= 2 && points.every(pt => Math.abs(pt[0]) <= 300) ? "delta" : "absolute";
+        }
+
+        function relativeTemperatureCalibration() {
+            const points = validCalibrationPoints(temperatureCalibration);
+            if (points.length < 2) return [];
+            if (temperatureCalibrationUsesDeltaResistance()) {
+                const zeroOutput = interpolateWithinRange(points, 0);
+                return Number.isFinite(zeroOutput)
+                    ? points.map(pt => [pt[0], pt[1] - zeroOutput])
+                    : [];
+            }
+            // The imported absolute R-T curve is re-anchored at 25 °C. Each sensor's
+            // measured room-state resistance supplies its own zero for ΔR.
+            const inversePoints = points.map(pt => [pt[1], pt[0]]);
+            const referenceResistance = interpolateWithinRange(inversePoints, DEFAULT_ROOM_TEMPERATURE_C);
+            return Number.isFinite(referenceResistance)
+                ? points.map(pt => [pt[0] - referenceResistance, pt[1] - DEFAULT_ROOM_TEMPERATURE_C])
+                : [];
+        }
+
+        function validCalibrationPoints(calibration) {
+            return (calibration || []).filter(pt => pt && Number.isFinite(pt[0]) && Number.isFinite(pt[1]));
+        }
+
+        function averageInWindow(data, start, end, endExclusive) {
+            let sum = 0;
+            let count = 0;
+            for (let i = 0; i < data.length; i++) {
+                const t = data[i][0];
+                if (t >= start && (endExclusive ? t < end : t <= end) && Number.isFinite(data[i][1])) {
+                    sum += data[i][1];
+                    count++;
+                }
+            }
+            return count ? sum / count : NaN;
+        }
+
+        function interpolate(calibration, x) {
+            if (!calibration || calibration.length < 2 || !Number.isFinite(x)) return NaN;
+            const points = calibration.filter(pt => Number.isFinite(pt[0]) && Number.isFinite(pt[1])).sort((a, b) => a[0] - b[0]);
+            if (points.length < 2) return NaN;
+            if (x <= points[0][0]) return interpolateBetween(points[0], points[1], x);
+            const last = points.length - 1;
+            if (x >= points[last][0]) return interpolateBetween(points[last - 1], points[last], x);
+            for (let i = 0; i < points.length - 1; i++) {
+                if (x >= points[i][0] && x <= points[i + 1][0]) return interpolateBetween(points[i], points[i + 1], x);
+            }
+            return NaN;
+        }
+
+        function interpolateWithinRange(calibration, x) {
+            const points = validCalibrationPoints(calibration).sort((a, b) => a[0] - b[0]);
+            if (points.length < 2 || !Number.isFinite(x) || x < points[0][0] || x > points[points.length - 1][0]) return NaN;
+            return interpolate(points, x);
+        }
+
+        function interpolateBetween(a, b, x) {
+            const dx = b[0] - a[0];
+            if (dx === 0) return a[1];
+            return a[1] + (x - a[0]) * (b[1] - a[1]) / dx;
+        }
+
+        function lastTime(data) {
+            return data.length ? data[data.length - 1][0] : NaN;
+        }
+
+        function shouldResampleRtOnExport() {
+            const el = document.getElementById("resampleRtToEcg");
+            return Boolean(el && el.checked && ecgData.length);
+        }
+
+        function resampleSeriesToTimes(data, targetTimes) {
+            const points = data.filter(function(pt) {
+                return pt && Number.isFinite(pt[0]) && Number.isFinite(pt[1]);
+            });
+            if (!points.length || !targetTimes.length) return [];
+            if (points.length === 1) {
+                return targetTimes.map(function(t) { return [t, points[0][1]]; });
+            }
+
+            let index = 0;
+            const first = points[0];
+            const last = points[points.length - 1];
+            return targetTimes.map(function(t) {
+                if (t <= first[0]) return [t, first[1]];
+                if (t >= last[0]) return [t, last[1]];
+                while (index + 1 < points.length && points[index + 1][0] < t) {
+                    index++;
+                }
+                const a = points[index];
+                const b = points[index + 1] || a;
+                const dt = b[0] - a[0];
+                if (dt <= 0) return [t, a[1]];
+                return [t, a[1] + (t - a[0]) * (b[1] - a[1]) / dt];
+            });
+        }
+
+        function metadataForSave(sessionId) {
+            const temp = calcTemperature();
+            const capturedGlu = capturedGlucoseValue();
+            const modelId = personalModel ? (personalModelName || "model") : "NA";
+            const emgBleRate = emgBleClock.elapsedMs >= 2000
+                ? emgBleClock.intervalSamples * 1000 / emgBleClock.elapsedMs : NaN;
+            return {
+                subject_id: sessionSubjectId(),
+                session_id: sessionId,
+                session_role: sessionRole(),
+                captured_glucose_mmol_L: Number.isFinite(capturedGlu) ? capturedGlu.toFixed(2) : "NA",
+                captured_temperature_C: Number.isFinite(temp) ? temp.toFixed(1) : "NA",
+                prediction_glucose_mmol_L: Number.isFinite(rfPredictionValue) ? rfPredictionValue.toFixed(2) : "NA",
+                model_id: modelId,
+                capture_duration_s: captureDurationSec().toFixed(1),
+                emg_ble_packets: electroMode === "EMG" ? emgBleClock.packets : "NA",
+                emg_ble_samples: electroMode === "EMG" ? emgBleClock.samples : "NA",
+                emg_ble_interval_samples: electroMode === "EMG" ? emgBleClock.intervalSamples : "NA",
+                emg_ble_elapsed_s: electroMode === "EMG" && emgBleClock.elapsedMs > 0 ? (emgBleClock.elapsedMs / 1000).toFixed(3) : "NA",
+                emg_ble_rate_hz: electroMode === "EMG" && Number.isFinite(emgBleRate) ? emgBleRate.toFixed(1) : "NA",
+                emg_timebase_hz: electroMode === "EMG" ? getElectroSamplingRate("EMG") : "NA"
+            };
+        }
+
+        function metadataColumns(meta) {
+            return [
+                meta.subject_id,
+                meta.session_id,
+                meta.session_role,
+                meta.captured_glucose_mmol_L,
+                meta.captured_temperature_C,
+                meta.prediction_glucose_mmol_L,
+                meta.model_id,
+                meta.capture_duration_s,
+                meta.emg_ble_packets,
+                meta.emg_ble_samples,
+                meta.emg_ble_interval_samples,
+                meta.emg_ble_elapsed_s,
+                meta.emg_ble_rate_hz,
+                meta.emg_timebase_hz
+            ].map(metaCell);
+        }
+
+        function metaCell(value) {
+            return String(value == null || value === "" ? "NA" : value).replace(/[\t\r\n]/g, " ").trim() || "NA";
+        }
+
+        function saveAllData() {
+            const rows = [];
+            const sessionId = timestampName();
+            const meta = metadataForSave(sessionId);
+            const electroTimeHeader = electroMode === "ECG" ? "ECG_time_s" : electroMode + "_time_s";
+            const electroValueHeader = electroMode === "ECG" ? "ECG_voltage_mV" : electroMode + "_value_mV";
+            rows.push(electroTimeHeader + "\t" + electroValueHeader + "\tIT_time_s\tIT_current_uA\tTemp_time_s\tTemp_resistance_ohm\tPulse_time_s\tPulse_resistance_ohm\tsubject_id\tsession_id\tsession_role\tcaptured_glucose_mmol_L\tcaptured_temperature_C\tprediction_glucose_mmol_L\tmodel_id\tcapture_duration_s\temg_ble_packets\temg_ble_samples\temg_ble_interval_samples\temg_ble_elapsed_s\temg_ble_rate_hz\temg_timebase_hz");
+            const resampleRt = shouldResampleRtOnExport();
+            const ecgTimes = resampleRt ? ecgData.map(function(pt) { return pt[0]; }).filter(Number.isFinite) : [];
+            const tempExport = resampleRt ? resampleSeriesToTimes(tempRtData, ecgTimes) : tempRtData;
+            const pulseExport = resampleRt ? resampleSeriesToTimes(pulseRtData, ecgTimes) : pulseRtData;
+            const maxLen = Math.max(ecgData.length, glucoseData.length, tempExport.length, pulseExport.length);
+            const metaValues = metadataColumns(meta);
+            for (let i = 0; i < maxLen; i++) {
+                const e = ecgData[i] || ["", ""];
+                const g = glucoseData[i] || ["", ""];
+                const t = tempExport[i] || ["", ""];
+                const p = pulseExport[i] || ["", ""];
+                rows.push([cell(e[0]), electroCell(e[1]), cell(g[0]), cell(g[1]), cell(t[0]), cell(t[1]), cell(p[0]), cell(p[1])].concat(metaValues).join("\t"));
+            }
+            const blob = new Blob([rows.join("\n")], { type: "text/plain;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "wesys_v8_" + safeName(meta.subject_id) + "_" + meta.session_role + "_" + gluMode.toLowerCase() + "_" + sessionId + ".txt";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            showNotice(resampleRt ? "Data saved with resampled R-t" : "Data saved");
+        }
+
+        function timestampName() {
+            const d = new Date();
+            const pad = n => String(n).padStart(2, "0");
+            return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + "_" + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+        }
+
+        function safeName(value) {
+            return String(value || "S01").replace(/[^A-Za-z0-9_-]+/g, "").slice(0, 24) || "S01";
+        }
+
+        function cell(value) {
+            if (!Number.isFinite(value)) return "";
+            if (Math.abs(value) >= 1000) return value.toFixed(3).replace(/\.?0+$/, "");
+            return value.toFixed(6).replace(/\.?0+$/, "");
+        }
+
+        function electroCell(value) {
+            if (!Number.isFinite(value)) return "";
+            if (value === 0) return "0";
+            return Number(value.toPrecision(10)).toString();
+        }
+
+        function showNotice(message) {
+            const el = document.getElementById("notice");
+            el.textContent = message;
+            el.classList.add("show");
+            clearTimeout(noticeTimer);
+            noticeTimer = setTimeout(function() { el.classList.remove("show"); }, 1200);
+        }
+
+        function startRenderLoop() {
+            if (renderRaf) return;
+            const loop = function(now) {
+                if (!lastRenderMs || now - lastRenderMs >= RENDER_INTERVAL_MS) {
+                    lastRenderMs = now;
+                    if (document.getElementById("pageRouting").classList.contains("active")) {
+                        miniCharts.forEach(function(chart, index) {
+                            if (!chart.frozen) chart.draw(rawDataBuffer[index] || []);
+                        });
+                    }
+                    if (document.getElementById("pageDashboard").classList.contains("active")) {
+                        Object.values(charts).forEach(chart => chart.draw());
+                    }
+                }
+                renderRaf = requestAnimationFrame(loop);
+            };
+            renderRaf = requestAnimationFrame(loop);
+        }
+
+        class SignalChart {
+            constructor(config) {
+                this.canvas = document.getElementById(config.canvasId);
+                this.ctx = this.canvas.getContext("2d");
+                this.rangeEl = document.getElementById(config.rangeId);
+                this.color = config.color;
+                this.unit = config.unit;
+                this.data = config.data || [];
+                this.metricUpdate = config.metricUpdate;
+                this.windowSize = VIEW_WINDOW;
+                this.windowStart = 0;
+                this.showAll = false;
+                this.live = false;
+                this.dragging = false;
+                this.dragX = 0;
+                this.dragStart = 0;
+                this.width = 0;
+                this.height = 0;
+                this.bind();
+                this.resize();
+            }
+
+            bind() {
+                this.canvas.addEventListener("pointerdown", (event) => {
+                    if (!this.data.length || this.showAll) return;
+                    this.canvas.setPointerCapture(event.pointerId);
+                    this.dragging = true;
+                    this.live = false;
+                    this.dragX = event.clientX;
+                    this.dragStart = this.windowStart;
+                });
+                this.canvas.addEventListener("pointermove", (event) => {
+                    if (!this.dragging) return;
+                    const drawWidth = Math.max(1, this.width - 52 - 8);
+                    const dx = event.clientX - this.dragX;
+                    this.setWindowStart(this.dragStart - dx * this.windowSize / drawWidth);
+                });
+                this.canvas.addEventListener("pointerup", (event) => {
+                    this.dragging = false;
+                    try { this.canvas.releasePointerCapture(event.pointerId); } catch (err) {}
+                    if (this.metricUpdate) this.metricUpdate();
+                });
+                this.canvas.addEventListener("pointercancel", () => { this.dragging = false; });
+            }
+
+            resize() {
+                const rect = this.canvas.getBoundingClientRect();
+                if (rect.width <= 0 || rect.height <= 0) return;
+                const dpr = window.devicePixelRatio || 1;
+                this.width = rect.width;
+                this.height = rect.height;
+                this.canvas.width = Math.max(1, Math.round(rect.width * dpr));
+                this.canvas.height = Math.max(1, Math.round(rect.height * dpr));
+                this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+
+            setData(data) {
+                this.data = data || [];
+                this.windowStart = this.defaultStart();
+                this.showAll = false;
+                this.draw();
+            }
+
+            toggleShowAll() {
+                this.showAll = !this.showAll;
+                if (!this.showAll) this.windowStart = this.defaultStart();
+                this.draw();
+            }
+
+            minTime() { return this.data.length ? this.data[0][0] : 0; }
+            maxTime() { return this.data.length ? this.data[this.data.length - 1][0] : this.windowSize; }
+            maxStart() { return Math.max(this.minTime(), this.maxTime() - this.windowSize); }
+            defaultStart() { return this.clampStart(this.maxTime() - this.windowSize); }
+            clampStart(v) { return Math.min(this.maxStart(), Math.max(this.minTime(), Number.isFinite(v) ? v : this.minTime())); }
+            windowEnd() { return this.windowStart + this.windowSize; }
+            metricEnd() { return this.showAll || this.live ? this.maxTime() : this.windowEnd(); }
+            viewStart() { return this.showAll ? this.minTime() : this.windowStart; }
+            viewEnd() { return this.showAll ? this.maxTime() : this.windowEnd(); }
+
+            setWindowStart(value) {
+                this.windowStart = this.clampStart(value);
+                this.draw();
+            }
+
+            visibleData() {
+                if (this.live && !this.showAll && !this.dragging) {
+                    this.windowStart = this.defaultStart();
+                }
+                const start = this.viewStart();
+                const end = this.viewEnd();
+                const visibleEnd = end;
+                const first = this.lowerBound(start);
+                const visible = [];
+                for (let i = first; i < this.data.length; i++) {
+                    const t = this.data[i][0];
+                    const y = this.data[i][1];
+                    if (t >= start && t <= visibleEnd && Number.isFinite(t) && Number.isFinite(y)) visible.push(this.data[i]);
+                    else if (t > visibleEnd) break;
+                }
+                return visible;
+            }
+
+            lowerBound(time) {
+                let lo = 0;
+                let hi = this.data.length;
+                while (lo < hi) {
+                    const mid = Math.floor((lo + hi) / 2);
+                    if (this.data[mid][0] < time) lo = mid + 1;
+                    else hi = mid;
+                }
+                return lo;
+            }
+
+            draw() {
+                if (!this.width || !this.height) this.resize();
+                if (!this.width || !this.height) return;
+                const ctx = this.ctx;
+
+                ctx.clearRect(0, 0, this.width, this.height);
+                const visible = this.visibleData();
+                const start = this.viewStart();
+                const end = this.viewEnd();
+                this.rangeEl.textContent = this.showAll ? "All" : start.toFixed(1) + "-" + end.toFixed(1) + " s";
+
+                if (!visible.length) {
+                    ctx.fillStyle = "#98a4b3";
+                    ctx.font = "10px Arial, sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText("No data", this.width / 2, this.height / 2);
+                    return;
+                }
+
+                let minY = Infinity;
+                let maxY = -Infinity;
+                visible.forEach(function(pt) {
+                    if (pt[1] < minY) minY = pt[1];
+                    if (pt[1] > maxY) maxY = pt[1];
+                });
+                if (!Number.isFinite(minY) || !Number.isFinite(maxY)) {
+                    ctx.fillStyle = "#98a4b3";
+                    ctx.font = "10px Arial, sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText("No valid data", this.width / 2, this.height / 2);
+                    return;
+                }
+                if (this.unit === "mV" && baselineEnabled) {
+                    if (electroMode === "EMG" || electroMode === "EEG") {
+                        const absMax = Math.max(Math.abs(minY), Math.abs(maxY));
+                        if (absMax > 0) {
+                            minY = -absMax;
+                            maxY = absMax;
+                        }
+                    } else {
+                        minY = Math.min(minY, 0);
+                        maxY = Math.max(maxY, 0);
+                    }
+                }
+                let rangeY = maxY - minY;
+                if (rangeY === 0) {
+                    const minSpan = this.unit === "mV" ? 0.01 : (this.unit === "ohm" ? 1 : 0.1);
+                    rangeY = Math.max(minSpan, Math.abs(maxY) * 0.1 || minSpan);
+                }
+                minY -= rangeY * 0.12;
+                maxY += rangeY * 0.12;
+
+                const effectiveRange = maxY - minY;
+                const yLabels = [];
+                for (let i = 0; i <= 3; i++) {
+                    const value = maxY - effectiveRange * i / 3;
+                    yLabels.push(formatAxis(value, this.unit, effectiveRange));
+                }
+
+                ctx.font = "9px Arial, sans-serif";
+                const labelWidth = yLabels.reduce((max, label) => Math.max(max, ctx.measureText(label).width), 0);
+                // One gutter width for all three stacked charts so their plots line up: the
+                // widest label plus a small gap, never below a shared floor (which is what
+                // keeps the axes aligned when the labels are short) and capped so a long label
+                // cannot eat the plot. The unit stays on every label.
+                const gutter = Math.max(54, Math.min(Math.ceil(labelWidth) + 9, Math.round(this.width * 0.38)));
+                const padding = {
+                    left: gutter,
+                    right: 8,
+                    top: 7,
+                    bottom: 18
+                };
+                const drawW = Math.max(1, this.width - padding.left - padding.right);
+                const drawH = Math.max(1, this.height - padding.top - padding.bottom);
+
+                ctx.strokeStyle = "#e3e8ef";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let i = 0; i <= 3; i++) {
+                    const y = padding.top + drawH * i / 3;
+                    ctx.moveTo(padding.left, y);
+                    ctx.lineTo(this.width - padding.right, y);
+                }
+                ctx.stroke();
+
+                ctx.fillStyle = "#6f7b8d";
+                ctx.textAlign = "right";
+                ctx.textBaseline = "middle";
+                for (let i = 0; i <= 3; i++) {
+                    const y = padding.top + drawH * i / 3;
+                    ctx.fillText(yLabels[i], padding.left - 5, y);
+                }
+
+                ctx.textAlign = "center";
+                ctx.textBaseline = "top";
+                ctx.fillText(start.toFixed(1) + " s", padding.left, this.height - padding.bottom + 5);
+                ctx.fillText(end.toFixed(1) + " s", this.width - padding.right - 2, this.height - padding.bottom + 5);
+
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 1.7;
+                ctx.lineJoin = "round";
+                ctx.lineCap = "round";
+                ctx.beginPath();
+                const timeRange = Math.max(0.001, end - start);
+                let moved = false;
+                const plotVisible = decimateForCanvas(visible, drawW);
+                for (let i = 0; i < plotVisible.length; i++) {
+                    const pt = plotVisible[i];
+                    const x = padding.left + (pt[0] - start) / timeRange * drawW;
+                    const y = padding.top + (maxY - pt[1]) / (maxY - minY) * drawH;
+                    if (!moved) {
+                        ctx.moveTo(x, y);
+                        moved = true;
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            }
+        }
+
+        class MiniChart {
+            constructor(canvasId, color) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext("2d");
+                this.color = color;
+                this.frozen = false;
+                this.width = 0;
+                this.height = 0;
+                this.resize();
+            }
+
+            resize() {
+                const rect = this.canvas.getBoundingClientRect();
+                if (rect.width <= 0 || rect.height <= 0) return;
+                const dpr = window.devicePixelRatio || 1;
+                this.width = rect.width;
+                this.height = rect.height;
+                this.canvas.width = Math.max(1, Math.round(rect.width * dpr));
+                this.canvas.height = Math.max(1, Math.round(rect.height * dpr));
+                this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+
+            draw(data) {
+                if (!this.width || !this.height) this.resize();
+                if (!this.width || !this.height) return;
+                const ctx = this.ctx;
+                ctx.clearRect(0, 0, this.width, this.height);
+                if (!data || !data.length) return;
+                const end = data[data.length - 1][0];
+                const start = Math.max(0, end - 5);
+                const visible = visibleRecentPoints(data, 5);
+                if (!visible.length) return;
+                let minY = Infinity;
+                let maxY = -Infinity;
+                visible.forEach(function(pt) {
+                    if (pt[1] < minY) minY = pt[1];
+                    if (pt[1] > maxY) maxY = pt[1];
+                });
+                if (!Number.isFinite(minY) || !Number.isFinite(maxY)) return;
+                let rangeY = maxY - minY;
+                if (rangeY === 0) rangeY = Math.max(0.01, Math.abs(maxY) * 0.1 || 0.01);
+                minY -= rangeY * 0.1;
+                maxY += rangeY * 0.1;
+                ctx.strokeStyle = "#edf1f5";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let i = 1; i <= 2; i++) {
+                    const y = this.height * i / 3;
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(this.width, y);
+                }
+                ctx.stroke();
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 1.3;
+                ctx.beginPath();
+                let moved = false;
+                const timeRange = Math.max(0.001, end - start);
+                decimateForCanvas(visible, this.width).forEach((pt) => {
+                    const x = (pt[0] - start) / timeRange * this.width;
+                    const y = (maxY - pt[1]) / (maxY - minY) * this.height;
+                    if (!moved) {
+                        ctx.moveTo(x, y);
+                        moved = true;
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+                ctx.stroke();
+            }
+        }
+
+        function formatAxis(value, unit, range) {
+            if (!Number.isFinite(value)) return "--" + (unit ? " " + unit : "");
+            if (unit === "ohm") {
+                const abs = Math.abs(value);
+                if (abs >= 1e9) return (value / 1e9).toFixed(3).replace(/\.?0+$/, "") + " GΩ";
+                if (abs >= 1e6) return (value / 1e6).toFixed(3).replace(/\.?0+$/, "") + " MΩ";
+                if (abs >= 1e3) return (value / 1e3).toFixed(2).replace(/\.?0+$/, "") + " kΩ";
+                return value.toFixed(abs >= 100 ? 1 : 2).replace(/\.?0+$/, "") + " Ω";
+            }
+
+            // Auto-scale mV to μV when range or amplitude is small (< 0.2 mV = 200 μV), typical for EMG/EEG
+            if (unit === "mV") {
+                const span = Number.isFinite(range) ? range : Math.abs(value);
+                if (span < 0.2) {
+                    let uV = value * 1000;
+                    if (Math.abs(uV) < 1e-9) uV = 0;
+                    let text;
+                    const uVSpan = span * 1000;
+                    if (uVSpan < 0.01) text = uV === 0 ? "0" : uV.toExponential(2);
+                    else if (uVSpan >= 100) text = uV.toFixed(0);
+                    else if (uVSpan >= 10) text = uV.toFixed(1);
+                    else if (uVSpan >= 1) text = uV.toFixed(2);
+                    else text = uV.toFixed(3);
+                    if (text.startsWith("-0") && !/[1-9]/.test(text)) text = text.slice(1);
+                    return text + " μV";
+                }
+            }
+
+            const span = Number.isFinite(range) ? range : Math.abs(value);
+            const abs = Math.abs(value);
+            let val = Math.abs(value) < 1e-9 ? 0 : value;
+            let text;
+            if (span >= 1000 || abs >= 1000) text = val.toFixed(0);
+            else if (span >= 100 || abs >= 100) text = val.toFixed(1);
+            else if (span >= 10 || abs >= 10) text = val.toFixed(2);
+            else if (span >= 1) text = val.toFixed(2);
+            else if (span >= 0.1) text = val.toFixed(3);
+            else text = val.toFixed(4);
+
+            if (text.startsWith("-0") && !/[1-9]/.test(text)) text = text.slice(1);
+            return text + (unit ? " " + unit : "");
+        }
+
+        class BaselineCorrector {
+            constructor(mode) {
+                this.mode = mode;
+                this.preset = BASELINE_PRESETS[mode] || BASELINE_PRESETS.ECG;
+                this.sampleRate = getElectroSamplingRate(mode);
+                this.reset();
+                this.alpha = 1 - Math.exp(-1 / Math.max(1, this.preset.tau * this.sampleRate));
+                this.devAlpha = Math.min(0.05, this.alpha * 2);
+            }
+
+            reset() {
+                this.baseline = 0;
+                this.deviation = this.preset.minGuard;
+                this.ready = false;
+            }
+
+            process(value) {
+                if (!Number.isFinite(value)) return value;
+                if (!this.ready) {
+                    this.baseline = value;
+                    this.deviation = this.preset.minGuard;
+                    this.ready = true;
+                    return 0;
+                }
+                const residual = value - this.baseline;
+                const absResidual = Math.abs(residual);
+                const guard = Math.max(this.preset.minGuard, this.deviation * this.preset.guard);
+                const weight = absResidual <= guard ? 1 : this.preset.peakLeak;
+                this.baseline += this.alpha * weight * residual;
+                if (absResidual <= guard) {
+                    this.deviation += this.devAlpha * (absResidual - this.deviation);
+                }
+                return value - this.baseline;
+            }
+        }
+
+        class Biquad {
+            constructor(type, freq, q, sampleRate) {
+                this.type = type;
+                this.freq = freq;
+                this.q = q;
+                this.sampleRate = sampleRate;
+                this.reset();
+                this.calc();
+            }
+
+            reset() {
+                this.x1 = 0;
+                this.x2 = 0;
+                this.y1 = 0;
+                this.y2 = 0;
+                this.ready = false;
+            }
+
+            calc() {
+                const w0 = 2 * Math.PI * this.freq / this.sampleRate;
+                const alpha = Math.sin(w0) / (2 * this.q);
+                const c = Math.cos(w0);
+                let b0, b1, b2, a0, a1, a2;
+                if (this.type === "lowpass") {
+                    b0 = (1 - c) / 2; b1 = 1 - c; b2 = (1 - c) / 2;
+                    a0 = 1 + alpha; a1 = -2 * c; a2 = 1 - alpha;
+                } else if (this.type === "highpass") {
+                    b0 = (1 + c) / 2; b1 = -(1 + c); b2 = (1 + c) / 2;
+                    a0 = 1 + alpha; a1 = -2 * c; a2 = 1 - alpha;
+                } else {
+                    b0 = 1; b1 = -2 * c; b2 = 1;
+                    a0 = 1 + alpha; a1 = -2 * c; a2 = 1 - alpha;
+                }
+                this.b0 = b0 / a0; this.b1 = b1 / a0; this.b2 = b2 / a0;
+                this.a1 = a1 / a0; this.a2 = a2 / a0;
+            }
+
+            process(v) {
+                if (!Number.isFinite(v)) {
+                    this.reset();
+                    return NaN;
+                }
+                if (!this.ready) {
+                    this.x1 = v; this.x2 = v;
+                    this.y1 = this.type === "highpass" ? 0 : v;
+                    this.y2 = this.y1;
+                    this.ready = true;
+                }
+                const y = this.b0 * v + this.b1 * this.x1 + this.b2 * this.x2 - this.a1 * this.y1 - this.a2 * this.y2;
+                if (!Number.isFinite(y)) {
+                    this.reset();
+                    return NaN;
+                }
+                this.x2 = this.x1; this.x1 = v;
+                this.y2 = this.y1; this.y1 = y;
+                return y;
+            }
+        }
+
+        class FilterChain {
+            constructor(mode) {
+                const sampleRate = getElectroSamplingRate(mode);
+                const preset = FILTER_PRESETS[mode] || FILTER_PRESETS.ECG;
+                this.filters = [];
+                this.addFilter("notch", preset.notch, 30, sampleRate);
+                this.addFilter("lowpass", preset.lp, 0.707, sampleRate);
+                this.addFilter("highpass", preset.hp, 0.707, sampleRate);
+            }
+
+            addFilter(type, freq, q, sampleRate) {
+                const safeFreq = clampFilterFreq(freq, sampleRate);
+                if (!Number.isFinite(safeFreq) || safeFreq <= 0) return;
+                this.filters.push(new Biquad(type, safeFreq, q, sampleRate));
+            }
+
+            process(value) {
+                let v = value;
+                for (let i = 0; i < this.filters.length; i++) {
+                    v = this.filters[i].process(v);
+                }
+                return v;
+            }
+
+            reset() {
+                this.filters.forEach(function(filter) {
+                    filter.reset();
+                });
+            }
+        }
+
+        function clampFilterFreq(freq, sampleRate) {
+            if (!Number.isFinite(freq) || !Number.isFinite(sampleRate) || sampleRate <= 0) return NaN;
+            return Math.min(freq, sampleRate * 0.45);
+        }
+
+        document.addEventListener("keydown", function(event) {
+            if (event.key === "Escape") closeTempCalibration();
+        });
+
+        handleChipChange();
+        configureElectroMode();
+        updateModelButton();
+    </script>
+</body>
+</html>
